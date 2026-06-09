@@ -2,8 +2,8 @@ name: Fabrica de APK ClasicoFilm
 
 on:
   push:
-    branches: [ "main", "master" ] # Se activa cada vez que subes algo a la rama principal
-  workflow_dispatch: # Permite activar la compilación a mano con un botón
+    branches: [ "main", "master" ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -30,10 +30,13 @@ jobs:
     - name: 5. Instalar Apache Cordova
       run: npm install -g cordova
 
-    - name: 6. Crear estructura de Cordova temporal
+    - name: 6. Crear estructura de Cordova con Plugins de Red
       run: |
         cordova create carpeta_temporal com.clasicofilm.tv "ClasicoFilm TV"
         cd carpeta_temporal
+        # Añadir plugins críticos de red y acceso seguro
+        cordova plugin add cordova-plugin-whitelist || true
+        cordova platform add android
         # Reemplazar los archivos por los tuyos del repositorio
         rm -rf www/*
         cp ../index.html www/
@@ -43,7 +46,6 @@ jobs:
     - name: 7. Compilar la APK de Android (Modo Debug)
       run: |
         cd carpeta_temporal
-        cordova platform add android
         cordova build android --device
 
     - name: 8. Guardar la APK generada para descargar
