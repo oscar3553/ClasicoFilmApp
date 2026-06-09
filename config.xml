@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.clasicofilm.tv" version="1.0.0" xmlns="http://cordova.apache.org/ns/1.0" xmlns:cdv="http://cordova.apache.org/ns/1.0/hybrid">
+<widget id="com.clasicofilm.tv" version="1.0.1" xmlns="http://cordova.apache.org/ns/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
     <name>ClasicoFilm TV</name>
     <description>Tu catálogo de cine clásico en streaming.</description>
     <author email="soporte@classicofilm.com" href="https://www.classicofilm.com">Óscar - ClasicoFilm</author>
@@ -9,10 +9,22 @@
     <access origin="*" />
     <allow-navigation href="*" />
     <allow-intent href="*" />
-    
+    <allow-navigation href="https://*/*" />
+    <allow-navigation href="http://*/*" />
+
     <platform name="android">
-        <preference name="Orientation" value="landscape" /> <preference name="AndroidLaunchMode" value="singleTop" />
+        <preference name="Orientation" value="landscape" />
+        <preference name="AndroidLaunchMode" value="singleTop" />
         <preference name="KeepRunning" value="true" />
+        
+        <config-file target="AndroidManifest.xml" parent="/*">
+            <uses-permission android:name="android.permission.INTERNET" />
+            <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+        </config-file>
+        
+        <edit-config target="AndroidManifest.xml" parent="/manifest/application" mode="merge">
+            <application android:usesCleartextTraffic="true" />
+        </edit-config>
     </platform>
     
     <preference name="Fullscreen" value="true" />
