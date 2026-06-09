@@ -7,24 +7,31 @@ let generoActivo = "TODOS";
 // Variables para el control del mando a distancia (Navegación por teclado/DPAD)
 let elementoEnfocadoActual = null;
 
-// Inicialización nativa de la App con Cordova
+// Inicialización nativa de la App con Cordova: ESPERAR AL DISPOSITIVO
 document.addEventListener('deviceready', () => {
-    // Aquí se pueden añadir configuraciones nativas de Android si hiciera falta
-    console.log("Cordova está listo.");
+    console.log("Cordova nativo activado correctamente.");
+    // Arrancamos la carga de películas solo cuando Android da luz verde
+    cargarTodoElCatalogo();
 }, false);
 
 async function cargarTodoElCatalogo() {
     const estadoTitulo = document.getElementById('estado-titulo');
-    if(estadoTitulo) estadoTitulo.innerText = "Cargando catálogo...";
+    if(estadoTitulo) estadoTitulo.innerText = "Conectando con Blogger...";
     
     await cargarBloque(1);
     await cargarBloque(151);
     await cargarBloque(301);
     
-    if(estadoTitulo) estadoTitulo.innerText = `Catálogo (${totalPeliculas} películas)`;
+    if(estadoTitulo) {
+        if (totalPeliculas === 0) {
+            estadoTitulo.innerText = "Error: Sin conexión al catálogo";
+        } else {
+            estadoTitulo.innerText = `Catálogo (${totalPeliculas} películas)`;
+        }
+    }
     crearBotonesDeGeneros();
     
-    // Al terminar de cargar, enfocamos automáticamente el buscador para empezar a navegar con el mando
+    // Al terminar de cargar, enfocamos automáticamente el buscador
     setTimeout(() => {
         const buscador = document.getElementById('buscador-cine');
         if (buscador) {
@@ -33,7 +40,7 @@ async function cargarTodoElCatalogo() {
         }
     }, 500);
 }
-
+// ... El resto de tu index.js hacia abajo se queda exactamente igual ...
 async function cargarBloque(startIndex) {
     const url = `https://www.classicofilm.com/feeds/posts/default?alt=json&start-index=${startIndex}&max-results=150`;
     try {
