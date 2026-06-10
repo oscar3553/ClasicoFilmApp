@@ -42,13 +42,22 @@ async function cargarTodoElCatalogo() {
 }
 // ... El resto de tu index.js hacia abajo se queda exactamente igual ...
 async function cargarBloque(startIndex) {
-    const url = `https://www.classicofilm.com/feeds/posts/default?alt=json&start-index=${startIndex}&max-results=150`;
+    // Usamos un proxy legítimo para saltarnos el bloqueo estricto de Android
+    const urlOriginal = `https://www.classicofilm.com/feeds/posts/default?alt=json&start-index=${startIndex}&max-results=150`;
+    const url = `https://api.allorigins.win/get?url=${encodeURIComponent(urlOriginal)}`;
+
     try {
         const response = await fetch(url);
         if (!response.ok) return;
-        const data = await response.json();
+        const contenedorProxy = await response.json();
+        
+        // El proxy nos devuelve el JSON de Blogger dentro de una propiedad "contents" en formato texto
+        const data = JSON.parse(contenedorProxy.contents);
+        
         if (data.feed && data.feed.entry) agregarPeliculasAlCatalogo(data.feed.entry);
-    } catch (e) { console.error("Error en bloque: ", e); }
+    } catch (e) { 
+        console.error("Error en bloque: ", e); 
+    }
 }
 
 function agregarPeliculasAlCatalogo(entradas) {
