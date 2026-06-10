@@ -42,22 +42,42 @@ async function cargarTodoElCatalogo() {
 }
 // ... El resto de tu index.js hacia abajo se queda exactamente igual ...
 async function cargarBloque(startIndex) {
-    // Usamos un proxy legítimo para saltarnos el bloqueo estricto de Android
-    const urlOriginal = `https://www.classicofilm.com/feeds/posts/default?alt=json&start-index=${startIndex}&max-results=150`;
-    const url = `https://api.allorigins.win/get?url=${encodeURIComponent(urlOriginal)}`;
+    const url = `https://www.classicofilm.com/feeds/posts/default?alt=json&start-index=${startIndex}&max-results=150`;
 
-    try {
-        const response = await fetch(url);
-        if (!response.ok) return;
-        const contenedorProxy = await response.json();
-        
-        // El proxy nos devuelve el JSON de Blogger dentro de una propiedad "contents" en formato texto
-        const data = JSON.parse(contenedorProxy.contents);
-        
-        if (data.feed && data.feed.entry) agregarPeliculasAlCatalogo(data.feed.entry);
-    } catch (e) { 
-        console.error("Error en bloque: ", e); 
-    }
+    return new Promise((resolve) => {
+        // Comprobamos si el plugin nativo de Android está listo
+        if (window.cordova && window.cordova.plugin && window.cordova.plugin.http) {
+            
+            // Usamos la descarga nativa (esta no tiene bloqueos de seguridad de Android)
+            window.cordova.plugin.http.get(url, {}, {}, function(response) {
+                try {
+                    const data = JSON.parse(response.data);
+                    if (data.feed && data.feed.entry) {
+                        agregarPeliculasAlCatalogo(data.feed.entry);
+                    }
+                } catch (e) {
+                    console.error("Error al procesar JSON nativo: ", e);
+                }
+                resolve();
+            }, function(error) {
+                console.error("Error en peticion nativa: ", error.status, error.error);
+                resolve();
+            });
+
+        } else {
+            // Modo de respaldo (para pruebas en el navegador de la PC)
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.feed && data.feed.entry) agregarPeliculasAlCatalogo(data.feed.entry);
+                    resolve();
+                })
+                .catch(err => {
+                    console.error("Error en fetch de respaldo: ", err);
+                    resolve();
+                });
+        }
+    });
 }
 
 function agregarPeliculasAlCatalogo(entradas) {
