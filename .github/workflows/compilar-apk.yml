@@ -30,7 +30,7 @@ jobs:
     - name: 5. Instalar Apache Cordova
       run: npm install -g cordova
 
-   - name: 6. Crear estructura de Cordova con Plugins de Red Avanzados
+    - name: 6. Crear estructura de Cordova con Plugins de Red Avanzados
       run: |
         cordova create carpeta_temporal com.clasicofilm.tv "ClasicoFilm TV"
         cd carpeta_temporal
