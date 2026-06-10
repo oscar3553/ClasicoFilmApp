@@ -40,7 +40,7 @@ async function cargarTodoElCatalogo() {
         }
     }, 500);
 }
-// ... El resto de tu index.js hacia abajo se queda exactamente igual ...
+
 async function cargarBloque(startIndex) {
     const url = `https://www.classicofilm.com/feeds/posts/default?alt=json&start-index=${startIndex}&max-results=150`;
 
@@ -213,7 +213,6 @@ function cerrarReproductor() {
 document.addEventListener('keydown', (e) => {
     const buscador = document.getElementById('buscador-cine');
     
-    // Si el usuario está escribiendo en el buscador, permitimos que las flechas izquierda/derecha se muevan por el texto
     if (document.activeElement === buscador && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
         return; 
     }
@@ -232,22 +231,18 @@ document.addEventListener('keydown', (e) => {
 
     let proximoElemento = null;
 
-    // Lógica inteligente de salto según la tecla del mando
     if (e.key === "ArrowRight") {
         proximoElemento = elementosEnfocables[index + 1] || elementosEnfocables[0];
     } else if (e.key === "ArrowLeft") {
         proximoElemento = elementosEnfocables[index - 1] || elementosEnfocables[elementosEnfocables.length - 1];
     } else if (e.key === "ArrowDown") {
-        // En parrilla, saltar a la fila de abajo aproximando la posición geométrica
         proximoElemento = buscarElementoAbajoOArriba(elementosEnfocables, index, "abajo");
     } else if (e.key === "ArrowUp") {
         proximoElemento = buscarElementoAbajoOArriba(elementosEnfocables, index, "arriba");
     } else if (e.key === "Enter") {
-        // El botón central del mando ejecuta la acción
         document.activeElement.click();
         e.preventDefault();
     } else if (e.key === "Escape" || e.key === "BrowserBack" || e.code === "GoBack") {
-        // Manejar el botón "Atrás" del mando a distancia
         if (document.getElementById('reproductor-pantalla-completa').style.display === "block") {
             cerrarReproductor();
             e.preventDefault();
@@ -257,13 +252,11 @@ document.addEventListener('keydown', (e) => {
     if (proximoElemento) {
         proximoElemento.focus();
         elementoEnfocadoActual = proximoElemento;
-        // Hacer scroll automático suave para que el elemento enfocado esté a la vista
         proximoElemento.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
         e.preventDefault();
     }
 });
 
-// Función auxiliar para calcular saltos verticales en la rejilla de la TV
 function buscarElementoAbajoOArriba(lista, indexActual, direccion) {
     const actualRect = lista[indexActual].getBoundingClientRect();
     let mejorOpcion = null;
@@ -278,16 +271,15 @@ function buscarElementoAbajoOArriba(lista, indexActual, direccion) {
             : (elemRect.bottom <= actualRect.top + 5);
 
         if (condDireccion) {
-            // Calcular distancia matemática entre centros horizontales (X)
             const centroActualX = actualRect.left + (actualRect.width / 2);
             const centroElemX = elemRect.left + (elemRect.width / 2);
             const distanciaX = Math.abs(centroActualX - centroElemX);
             const distanciaY = Math.abs(elemRect.top - actualRect.top);
             
-            // Peso para priorizar elementos en la misma vertical
             const distanciaTotal = distanciaX + (distanciaY * 2); 
 
             if (distanciaTotal < distanciaMinima) {
+                distAction = distanciaTotal;
                 distanciaMinima = distanciaTotal;
                 mejorOpcion = elem;
             }
@@ -303,6 +295,4 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const closeBtn = document.getElementById('close-player-btn');
     if(closeBtn) closeBtn.addEventListener('click', cerrarReproductor);
-    
-    cargarTodoElCatalogo();
 });
