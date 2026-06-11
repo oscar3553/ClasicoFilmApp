@@ -45,13 +45,14 @@
         .movie-card:focus { border-color: #e50914; transform: scale(1.06); box-shadow: 0 0 15px rgba(229, 9, 20, 0.7); z-index: 10; }
         .movie-card:focus p { color: white; background-color: #e50914; }
 
-        /* REPRODUCTOR PANTALLA COMPLETA PERFECTO */
-        .player-fullscreen { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #000; z-index: 9999; }
+        /* REPRODUCTOR PANTALLA COMPLETA INTEGRAL */
+        .player-fullscreen { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #000; z-index: 99999; }
         .player-fullscreen iframe { width: 100%; height: 100%; border: none; }
         
-        /* Botón de cerrar flotante e inteligente (Autohide) */
-        .close-video-btn { position: absolute; top: 25px; right: 25px; width: 45px; height: 45px; background-color: rgba(229, 9, 20, 0.85); border: 2px solid white; border-radius: 50%; color: white; font-size: 20px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; outline: none; transition: opacity 0.4s ease; z-index: 10000; box-shadow: 0 0 10px black; }
-        .close-video-btn:focus { background-color: white; color: #e50914; transform: scale(1.1); box-shadow: 0 0 15px white; }
+        /* Botón "VOLVER" oficial del sistema, colocado arriba a la izquierda para accesibilidad TV/Móvil */
+        .close-video-btn { position: absolute; top: 20px; left: 20px; padding: 12px 24px; background-color: #e50914; border: 2px solid white; border-radius: 25px; color: white; font-size: 14px; font-weight: bold; cursor: pointer; outline: none; transition: opacity 0.4s ease, transform 0.2s; z-index: 100000; box-shadow: 0 0 15px rgba(0,0,0,0.8); }
+        .close-video-btn:focus { background-color: white; color: #e50914; transform: scale(1.1); box-shadow: 0 0 20px white; }
+        
         .player-fullscreen.user-active .close-video-btn { opacity: 1; pointer-events: auto; }
         .player-fullscreen.user-inactive .close-video-btn { opacity: 0; pointer-events: none; }
     </style>
@@ -91,7 +92,7 @@
     <div id="catalogo-tv" class="catalog-container"></div>
 
     <div id="reproductor-pantalla-completa" class="player-fullscreen user-active">
-        <button id="close-player-btn" class="close-video-btn" aria-label="Cerrar reproductor">✕</button>
+        <button id="close-player-btn" class="close-video-btn">⬅️ VOLVER AL CATÁLOGO</button>
         <div id="video-container-tv" style="width:100%; height:100%;"></div>
     </div>
 
