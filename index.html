@@ -44,7 +44,7 @@
         .server-buttons { display: flex; flex-direction: column; gap: 12px; }
         .btn-servidor { padding: 14px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 15px; outline: none; color: white; text-align: center; }
         .btn-servidor.odysee { background-color: #ef5350; }
-        .btn-servidor.dzen { background-color: #2196f3; }
+        .btn-servidor.dzenru { background-color: #2196f3; }
         .btn-servidor.cancelar { background-color: #424242; margin-top: 10px; }
         .btn-servidor:focus { border: 2px solid white; transform: scale(1.04); }
 
@@ -61,14 +61,17 @@
         .btn-cargar-mas { padding: 15px 40px; background-color: #222; color: white; border: 2px solid #444; border-radius: 30px; font-weight: bold; font-size: 16px; cursor: pointer; outline: none; transition: all 0.2s; }
         .btn-cargar-mas:focus { background-color: #e50914; border-color: white; box-shadow: 0 0 15px #e50914; transform: scale(1.05); }
 
-        /* REPRODUCTOR TOTALMENTE SEGURO */
-        .player-fullscreen { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #000; z-index: 99999; }
-        .player-fullscreen iframe { width: 100%; height: 100%; border: none; }
+        /* REPRODUCTOR TOTALMENTE INMUNE A BLOQUEOS */
+        .player-fullscreen { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #000; z-index: 99999; flex-direction: column; }
         
-        /* Botón Volver persistente y protegido en esquina superior */
-        .close-container { position: absolute; top: 0; left: 0; width: 100%; height: 75px; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); z-index: 100001; pointer-events: none; display: flex; align-items: center; padding-left: 20px; }
-        .close-video-btn { padding: 10px 20px; background-color: #e50914; border: 2px solid white; border-radius: 20px; color: white; font-size: 13px; font-weight: bold; cursor: pointer; outline: none; pointer-events: auto; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
-        .close-video-btn:focus { background-color: white; color: #e50914; box-shadow: 0 0 20px white; }
+        /* El contenedor de video ocupa el 88% superior */
+        #video-container-tv { width: 100%; height: 88vh; background-color: black; }
+        #video-container-tv iframe { width: 100%; height: 100%; border: none; }
+        
+        /* Barra inferior independiente y fija (12% restante). Los videos nunca pueden pisar esta zona */
+        .bottom-control-bar { width: 100%; height: 12vh; background-color: #111; border-top: 2px solid #222; display: flex; align-items: center; justify-content: center; padding: 5px 0; }
+        .close-video-btn { padding: 12px 35px; background-color: #e50914; border: 2px solid white; border-radius: 25px; color: white; font-size: 15px; font-weight: bold; cursor: pointer; outline: none; box-shadow: 0 0 10px rgba(0,0,0,0.5); text-transform: uppercase; }
+        .close-video-btn:focus { background-color: white; color: #e50914; transform: scale(1.05); box-shadow: 0 0 15px white; }
     </style>
     <script src="cordova.js"></script>
 </head>
@@ -116,10 +119,10 @@
     </div>
 
     <div id="reproductor-pantalla-completa" class="player-fullscreen">
-        <div class="close-container">
+        <div id="video-container-tv"></div>
+        <div class="bottom-control-bar">
             <button id="close-player-btn" class="close-video-btn">⬅️ VOLVER AL CATÁLOGO</button>
         </div>
-        <div id="video-container-tv" style="width:100%; height:100%;"></div>
     </div>
 
     <script src="index.js"></script>
