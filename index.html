@@ -5,233 +5,96 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ClasicoFilm TV</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            user-select: none; /* Evita que el usuario seleccione texto por error en la TV */
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Arial', sans-serif; }
+        body { background-color: #0c0c0c; color: #ffffff; overflow-x: hidden; user-select: none; }
+        
+        /* Cabecera y Buscador */
+        .header-tv { display: flex; align-items: center; justify-content: space-between; padding: 15px 30px; background: linear-gradient(to bottom, #141414, #0c0c0c); }
+        .logo-box img { height: 45px; object-fit: contain; }
+        .search-box { width: 35%; position: relative; }
+        .search-box input { width: 100%; padding: 10px 15px; background-color: #222; border: 2px solid #333; border-radius: 20px; color: white; font-size: 15px; outline: none; }
+        .search-box input:focus { border-color: #e50914; box-shadow: 0 0 10px rgba(229, 9, 20, 0.5); }
+        
+        /* Sección Principal e Indicador */
+        .main-info { padding: 10px 30px; display: flex; align-items: center; justify-content: space-between; }
+        .status-title { font-size: 18px; color: #aaa; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        
+        /* Botón de Menú de Filtros */
+        .btn-explorar { padding: 10px 20px; background-color: #e50914; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; outline: none; font-size: 14px; }
+        .btn-explorar:focus { background-color: white; color: black; box-shadow: 0 0 12px white; }
 
-        body {
-            background-color: #111111;
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow-x: hidden;
-            padding-bottom: 20px;
-        }
+        /* Panel Desplegable de Géneros y Décadas */
+        .filter-panel { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(12, 12, 12, 0.95); z-index: 100; padding: 40px; overflow-y: auto; }
+        .filter-panel-content { max-width: 1000px; margin: 0 auto; }
+        .filter-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #222; padding-bottom: 15px; }
+        .filter-header h2 { color: #e50914; }
+        .btn-cerrar-panel { padding: 8px 15px; background-color: #333; color: white; border: none; border-radius: 3px; cursor: pointer; outline: none; }
+        .btn-cerrar-panel:focus { background-color: white; color: black; }
+        
+        .filter-section-title { font-size: 16px; color: #888; margin: 20px 0 10px 0; text-transform: uppercase; letter-spacing: 1px; }
+        .filter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        .btn-filtro { padding: 12px; background-color: #1c1c1c; color: #ccc; border: 1px solid #333; border-radius: 4px; text-align: left; cursor: pointer; outline: none; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .btn-filtro:focus { background-color: #e50914; color: white; border-color: white; transform: scale(1.03); }
+        .btn-filtro.activo { border-left: 4px solid #e50914; background-color: #252525; color: white; }
 
-        /* Cabecera elegante y fija */
-        header {
-            background: linear-gradient(to bottom, rgba(0,0,0,0.9), rgba(17,17,17,1));
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            padding: 15px 20px 10px 20px;
-            text-align: center;
-        }
+        /* Catálogo de Películas */
+        .catalog-container { padding: 10px 20px 40px 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 18px; }
+        .movie-card { display: block; text-decoration: none; background-color: #141414; border-radius: 6px; overflow: hidden; border: 2px solid transparent; transition: transform 0.2s; outline: none; position: relative; }
+        .movie-card img { width: 100%; height: 210px; object-fit: cover; background-color: #222; display: block; }
+        .movie-card p { padding: 8px; font-size: 12px; color: #e0e0e0; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold; }
+        .movie-card:focus { border-color: #e50914; transform: scale(1.06); box-shadow: 0 0 15px rgba(229, 9, 20, 0.7); z-index: 10; }
+        .movie-card:focus p { color: white; background-color: #e50914; }
 
-        .logo-container img {
-            max-height: 45px;
-            margin-bottom: 5px;
-        }
-
-        h1 {
-            font-size: 1rem;
-            color: #b3b3b3;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 12px;
-        }
-
-        /* Buscador estilizado para control remoto y táctil */
-        .search-container {
-            max-width: 500px;
-            margin: 0 auto 15px auto;
-        }
-
-        #buscador-cine {
-            width: 100%;
-            padding: 12px 20px;
-            border-radius: 25px;
-            border: 2px solid #333;
-            background-color: #222;
-            color: #fff;
-            font-size: 1rem;
-            outline: none;
-            transition: all 0.3s ease;
-            text-align: center;
-        }
-
-        /* Efecto cuando el buscador tiene el foco (ideal para mandos de TV) */
-        #buscador-cine:focus {
-            border-color: #e50914;
-            background-color: #2a2a2a;
-            box-shadow: 0 0 10px rgba(229, 9, 20, 0.5);
-        }
-
-        /* SOLUCIÓN AL RETO: Contenedor horizontal dinámico para géneros compactos */
-        .genres-wrapper {
-            width: 100%;
-            overflow-x: auto; /* Permite scroll lateral */
-            white-space: nowrap; /* Fuerza a los botones a estar en una sola línea */
-            padding: 5px 10px 10px 10px;
-            margin-bottom: 5px;
-            /* Ocultar barra de scroll en navegadores modernos */
-            scrollbar-width: none; 
-        }
-
-        .genres-wrapper::-webkit-scrollbar {
-            display: none; /* Ocultar barra de scroll en Chrome/Android */
-        }
-
-        .btn-genero {
-            display: inline-block;
-            background-color: #222;
-            color: #b3b3b3;
-            border: none;
-            padding: 8px 18px;
-            margin: 0 5px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: transform 0.2s ease, background-color 0.2s ease;
-        }
-
-        /* Estado enfocado o activo (Flechas del mando o click) */
-        .btn-genero:focus, .btn-genero.activo {
-            background-color: #e50914;
-            color: #fff;
-            outline: none;
-            transform: scale(1.05);
-        }
-
-        /* Parrilla de películas fluida */
-        .grid-container {
-            padding: 10px 20px;
-        }
-
-        #catalogo-tv {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 20px;
-            justify-content: center;
-        }
-
-        /* Tarjeta de película adaptada */
-        .movie-card {
-            display: block;
-            background-color: #1a1a1a;
-            border-radius: 8px;
-            overflow: hidden;
-            text-decoration: none;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            border: 2px solid transparent;
-        }
-
-        /* CRUCIAL: Resaltar la película seleccionada con el mando a distancia */
-        .movie-card:focus, .movie-card.enfocada {
-            outline: none;
-            border-color: #e50914;
-            transform: scale(1.06);
-            box-shadow: 0 0 15px rgba(229, 9, 20, 0.7);
-            z-index: 10;
-        }
-
-        .movie-card img {
-            width: 100%;
-            height: 230px;
-            object-fit: cover;
-            display: block;
-        }
-
-        .movie-card p {
-            color: #fff;
-            padding: 10px;
-            font-size: 0.85rem;
-            text-align: center;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis; /* Corta textos largos elegantemente */
-            background-color: #1a1a1a;
-        }
-
-        /* Reproductor nativo a pantalla completa absoluta */
-        #reproductor-pantalla-completa {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: #000;
-            z-index: 200;
-            display: none;
-        }
-
-        #video-container-tv {
-            width: 100%;
-            height: 100%;
-        }
-
-        #video-container-tv iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-
-        /* Botón cerrar gigante (Fácil de pulsar o activar con el botón Atrás del mando) */
-        #close-player-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background-color: rgba(229, 9, 21, 0.85);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            font-size: 24px;
-            cursor: pointer;
-            z-index: 210;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-        }
-
-        #close-player-btn:focus {
-            background-color: #ff0f1b;
-            transform: scale(1.1);
-            outline: none;
-        }
+        /* REPRODUCTOR PANTALLA COMPLETA PERFECTO */
+        .player-fullscreen { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #000; z-index: 9999; }
+        .player-fullscreen iframe { width: 100%; height: 100%; border: none; }
+        
+        /* Botón de cerrar flotante e inteligente (Autohide) */
+        .close-video-btn { position: absolute; top: 25px; right: 25px; width: 45px; height: 45px; background-color: rgba(229, 9, 20, 0.85); border: 2px solid white; border-radius: 50%; color: white; font-size: 20px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; outline: none; transition: opacity 0.4s ease; z-index: 10000; box-shadow: 0 0 10px black; }
+        .close-video-btn:focus { background-color: white; color: #e50914; transform: scale(1.1); box-shadow: 0 0 15px white; }
+        .player-fullscreen.user-active .close-video-btn { opacity: 1; pointer-events: auto; }
+        .player-fullscreen.user-inactive .close-video-btn { opacity: 0; pointer-events: none; }
     </style>
+    <script src="cordova.js"></script>
 </head>
 <body>
 
-    <header>
-        <div class="logo-container">
-            <img src="https://www.classicofilm.com/favicon.ico" alt="Logo Clasicofilm" onerror="this.style.display='none'">
+    <div class="header-tv">
+        <div class="logo-box">
+            <img src="https://blogger.googleusercontent.com/img/a/AVvXsEgpLF6ROFXXw42soEaNVYLsA7ZPqgnzhGWN-id-bGZ0GfPbfeO08bxXlPv6KgdiOPMAOrsjOu8V-WXIUhlTYRYlU6KQthnIL0VcP1-D1l7CJImrszfdjCImWIMOMgoBYl5MwPot7B7SeRqyx3TzBUP2q1AXRgr_hS1zlGMPnh4VEMTvEz9Lq0f1AytDFWog=s158" alt="ClasicoFilm">
         </div>
-        <h1 id="estado-titulo">Cargando Catálogo...</h1>
-        
-        <div class="search-container">
-            <input type="text" id="buscador-cine" placeholder="Buscar película por título...">
+        <div class="search-box">
+            <input type="text" id="buscador-cine" placeholder="Buscar película por título..." autocomplete="off">
         </div>
-
-        <div class="genres-wrapper" id="lista-generos">
-            </div>
-    </header>
-
-    <main class="grid-container">
-        <section id="catalogo-tv">
-            </section>
-    </main>
-
-    <div id="reproductor-pantalla-completa">
-        <button id="close-player-btn" aria-label="Cerrar reproductor">✕</button>
-        <div id="video-container-tv"></div>
     </div>
 
-    <script src="cordova.js"></script>
+    <div class="main-info">
+        <div id="estado-titulo" class="status-title">Conectando...</div>
+        <button id="btn-abrir-menu" class="btn-explorar">📂 CATEGORÍAS Y DÉCADAS</button>
+    </div>
+
+    <div id="panel-filtros" class="filter-panel">
+        <div class="filter-panel-content">
+            <div class="filter-header">
+                <h2>Explorar Catálogo</h2>
+                <button id="btn-cerrar-panel" class="btn-cerrar-panel">Volver al Catálogo ✕</button>
+            </div>
+            
+            <div class="filter-section-title">Filtrar por Género cinematográfico</div>
+            <div id="grid-generos" class="filter-grid"></div>
+            
+            <div class="filter-section-title">Filtrar por Década / Época</div>
+            <div id="grid-decadas" class="filter-grid"></div>
+        </div>
+    </div>
+
+    <div id="catalogo-tv" class="catalog-container"></div>
+
+    <div id="reproductor-pantalla-completa" class="player-fullscreen user-active">
+        <button id="close-player-btn" class="close-video-btn" aria-label="Cerrar reproductor">✕</button>
+        <div id="video-container-tv" style="width:100%; height:100%;"></div>
+    </div>
+
     <script src="index.js"></script>
 </body>
 </html>
