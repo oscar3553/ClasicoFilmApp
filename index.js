@@ -8,7 +8,7 @@ let filtroActivo = { tipo: "TODOS", valor: "TODOS" };
 
 let elementoEnfocadoActual = null;
 let tarjetaUltimoClick = null;
-let siguienteIndiceCarga = 451; // Empezamos la paginación en el siguiente bloque disponible
+let maxPeliculasVisibles = 60; // Límite inicial cómodo y rápido para evitar amontonamientos
 
 document.addEventListener('deviceready', () => {
     cargarTodoElCatalogoInicial();
@@ -18,12 +18,13 @@ async function cargarTodoElCatalogoInicial() {
     const estadoTitulo = document.getElementById('estado-titulo');
     if(estadoTitulo) estadoTitulo.innerText = "Conectando con Blogger...";
     
-    // Carga inicial masiva de bloques 1, 2 y 3
+    // Cargamos los tres primeros bloques de la nube en la memoria interna
     await cargarBloque(1);
     await cargarBloque(151);
     await cargarBloque(301);
     
-    actualizarContadorVisual();
+    // Pintamos solo las primeras 60 según el límite inicial
+    renderizarCatalogoEnPantalla();
     construirPanelFiltros();
     
     setTimeout(() => {
@@ -43,37 +44,21 @@ async function cargarBloque(startIndex) {
             window.cordova.plugin.http.get(url, {}, {}, function(response) {
                 try {
                     const data = JSON.parse(response.data);
-                    if (data.feed && data.feed.entry) agregarPeliculasAlCatalogo(data.feed.entry);
+                    if (data.feed && data.feed.entry) procesarEntradasBlogger(data.feed.entry);
                 } catch (e) { console.error(e); }
                 resolve();
             }, function(err) { resolve(); });
         } else {
             fetch(url).then(res => res.json()).then(data => {
-                if (data.feed && data.feed.entry) agregarPeliculasAlCatalogo(data.feed.entry);
+                if (data.feed && data.feed.entry) procesarEntradasBlogger(data.feed.entry);
                 resolve();
             }).catch(() => resolve());
         }
     });
 }
 
-// Función del botón de paginación manual ("Cargar más páginas")
-async function cargarSiguientePagina() {
-    const btn = document.getElementById('btn-cargar-mas');
-    if(btn) { btn.innerText = "⏳ CARGANDO..."; btn.disabled = true; }
-
-    await cargarBloque(siguienteIndiceCarga);
-    siguienteIndiceCarga += 150; // Desplazamos el puntero para el próximo clic
-
-    actualizarContadorVisual();
-    construirPanelFiltros(); // Actualizar categorías por si hay nuevos géneros
-    aplicarFiltrosYBusqueda();
-
-    if(btn) { btn.innerText = "🔽 MOSTRAR MÁS PELÍCULAS"; btn.disabled = false; }
-}
-
-function agregarPeliculasAlCatalogo(entradas) {
-    const contenedor = document.getElementById('catalogo-tv');
-    if (!entradas || !contenedor) return;
+function procesarEntradasBlogger(entradas) {
+    if (!entradas) return;
 
     entradas.forEach((entry) => {
         const titulo = entry.title.$t;
@@ -83,7 +68,6 @@ function agregarPeliculasAlCatalogo(entradas) {
         let imagenUrl = "https://via.placeholder.com/200x280?text=Cine";
         if (entry.media$thumbnail) imagenUrl = entry.media$thumbnail.url.replace('/s72-c/', '/s400/');
 
-        // --- SISTEMA MULTI-SERVIDOR DUAL ---
         let opcionesServidores = [];
         const contenidoPost = entry.content ? entry.content.$t : "";
         const matches = [...contenidoPost.matchAll(/<iframe[^>]+src="([^">]+)"/g)];
@@ -99,12 +83,11 @@ function agregarPeliculasAlCatalogo(entradas) {
             });
         }
 
-        // Si no encontramos servidores válidos específicos, buscamos cualquier iframe genérico
         if (opcionesServidores.length === 0 && matches.length > 0) {
-            opcionesServidores.push({ tipo: "Servidor Principal", url: (matches[0][1].startsWith('//') ? 'https:' + matches[0][1] : matches[0][1]) });
+            opcionesServidores.push({ tipo: "Principal", url: (matches[0][1].startsWith('//') ? 'https:' + matches[0][1] : matches[0][1]) });
         }
 
-        if (opcionesServidores.length === 0) return; // Saltamos posts sin video
+        if (opcionesServidores.length === 0) return;
 
         let categoriasPeli = [];
         if (entry.category) {
@@ -118,30 +101,83 @@ function agregarPeliculasAlCatalogo(entradas) {
             });
         }
 
-        const tarjeta = document.createElement('a');
-        tarjeta.href = "#";
-        tarjeta.className = 'movie-card';
-        tarjeta.tabIndex = 0;
-        tarjeta.innerHTML = `<img src="${imagenUrl}" alt="${titulo}"><p>${titulo}</p>`;
-        
-        tarjeta.addEventListener('click', (e) => {
-            e.preventDefault();
-            tarjetaUltimoClick = tarjeta; 
-            gestionarAperturaVideo(titulo, opcionesServidores);
-        });
-
-        contenedor.appendChild(tarjeta);
-        totalPeliculas++;
-
         peliculasDatos.push({ 
-            elemento: tarjeta, 
-            titulo: titulo.toLowerCase(), 
-            categorias: categoriasPeli 
+            titulo: titulo,
+            tituloMinuscula: titulo.toLowerCase(), 
+            imagen: imagenUrl,
+            servidores: opcionesServidores,
+            categorias: categoriasPeli,
+            elementoDOM: null
         });
+        totalPeliculas++;
     });
 }
 
-// Lógica decisiva: Si hay un servidor va directo, si hay varios despliega el diálogo flotante
+// Dibuja físicamente en pantalla respetando el límite estricto de la paginación
+function renderizarCatalogoEnPantalla() {
+    const contenedor = document.getElementById('catalogo-tv');
+    if (!contenedor) return;
+    contenedor.innerHTML = "";
+
+    const buscador = document.getElementById('buscador-cine');
+    const textoBusqueda = buscador ? buscador.value.toLowerCase().trim() : "";
+
+    let mostrados = 0;
+
+    peliculasDatos.forEach(peli => {
+        const coincideTexto = peli.tituloMinuscula.includes(textoBusqueda);
+        let coincideFiltro = (filtroActivo.tipo === "TODOS") || peli.categorias.includes(filtroActivo.valor);
+
+        if (coincideTexto && coincideFiltro) {
+            if (mostrados < maxPeliculasVisibles) {
+                if (!peli.elementoDOM) {
+                    const tarjeta = document.createElement('a');
+                    tarjeta.href = "#";
+                    tarjeta.className = 'movie-card';
+                    tarjeta.tabIndex = 0;
+                    tarjeta.innerHTML = `<img src="${peli.imagen}" alt="${peli.titulo}"><p>${peli.titulo}</p>`;
+                    
+                    tarjeta.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        tarjetaUltimoClick = tarjeta; 
+                        gestionarAperturaVideo(peli.titulo, peli.servidores);
+                    });
+                    peli.elementoDOM = tarjeta;
+                }
+                contenedor.appendChild(peli.elementoDOM);
+                mostrados++;
+            }
+        }
+    });
+
+    const estadoTitulo = document.getElementById('estado-titulo');
+    if (estadoTitulo) {
+        if (textoBusqueda !== "" || filtroActivo.tipo !== "TODOS") {
+            estadoTitulo.innerText = `Resultados (${mostrados} de ${totalPeliculas})`;
+        } else {
+            estadoTitulo.innerText = `Catálogo (${mostrados} de ${totalPeliculas} películas)`;
+        }
+    }
+    
+    // Ocultar botón "Cargar más" si ya se muestran todas las de la búsqueda actual
+    const btnCargar = document.getElementById('btn-cargar-mas');
+    if(btnCargar) {
+        btnCargar.style.display = (mostrados >= maxPeliculasVisibles) ? "block" : "none";
+    }
+}
+
+// Suma 60 nuevas películas reales a la rejilla cuando pulsas el botón inferior
+function cargarSiguientePagina() {
+    maxPeliculasVisibles += 60; 
+    renderizarCatalogoEnPantalla();
+    
+    // Devolvemos el foco al botón de cargar más para que no se pierda la selección del mando
+    setTimeout(() => {
+        const btn = document.getElementById('btn-cargar-mas');
+        if(btn && btn.style.display !== "none") btn.focus();
+    }, 100);
+}
+
 function gestionarAperturaVideo(titulo, servidores) {
     if (servidores.length === 1) {
         lanzarCinePantallaCompleta(servidores[0].url);
@@ -168,18 +204,7 @@ function gestionarAperturaVideo(titulo, servidores) {
         });
 
         modal.style.display = "flex";
-        contenedorBotones.firstChild.focus(); // Enfoca la primera opción de reproducción automáticamente
-    }
-}
-
-function actualizarContadorVisual() {
-    const estadoTitulo = document.getElementById('estado-titulo');
-    if (estadoTitulo) {
-        if (totalPeliculas === 0) {
-            estadoTitulo.innerText = "Error: Sin conexión al catálogo";
-        } else {
-            estadoTitulo.innerText = `Catálogo (${totalPeliculas} películas)`;
-        }
+        contenedorBotones.firstChild.focus();
     }
 }
 
@@ -216,46 +241,21 @@ function construirPanelFiltros() {
 
 function activarFiltro(tipo, valor, boton) {
     filtroActivo = { tipo: tipo, valor: valor };
+    maxPeliculasVisibles = 60; // Reseteamos contador al filtrar
+    
     document.querySelectorAll('.btn-filtro').forEach(b => b.classList.remove('activo'));
     boton.classList.add('activo');
     
     const buscador = document.getElementById('buscador-cine');
     if (buscador && tipo !== "TODOS") buscador.value = "";
 
-    aplicarFiltrosYBusqueda();
+    renderizarCatalogoEnPantalla();
     cerrarPanelFiltros();
 }
 
 function aplicarFiltrosYBusqueda() {
-    const buscador = document.getElementById('buscador-cine');
-    const texto = buscador ? buscador.value.toLowerCase().trim() : "";
-
-    peliculasDatos.forEach(peli => {
-        const coincideTexto = peli.titulo.includes(texto);
-        let coincideFiltro = false;
-
-        if (filtroActivo.tipo === "TODOS") {
-            coincideFiltro = true;
-        } else {
-            coincideFiltro = peli.categorias.includes(filtroActivo.valor);
-        }
-
-        if (coincideTexto && coincideFiltro) {
-            peli.elemento.style.display = "block";
-        } else {
-            peli.elemento.style.display = "none";
-        }
-    });
-
-    const visibles = peliculasDatos.filter(p => p.elemento.style.display !== "none").length;
-    const estadoTitulo = document.getElementById('estado-titulo');
-    if (estadoTitulo) {
-        if(filtroActivo.tipo === "TODOS" && texto === "") {
-            estadoTitulo.innerText = `Catálogo (${totalPeliculas} películas)`;
-        } else {
-            estadoTitulo.innerText = `Resultados (${visibles} películas)`;
-        }
-    }
+    maxPeliculasVisibles = 60; // Reseteamos al escribir en el buscador
+    renderizarCatalogoEnPantalla();
 }
 
 function abrirPanelFiltros() {
@@ -270,7 +270,6 @@ function cerrarPanelFiltros() {
     if(btnMenu) btnMenu.focus();
 }
 
-// REPRODUCTOR CON MÁXIMA PERSISTENCIA DE CONTROL "VOLVER"
 function lanzarCinePantallaCompleta(url) {
     document.body.style.overflow = "hidden";
     const player = document.getElementById('reproductor-pantalla-completa');
@@ -288,7 +287,7 @@ function lanzarCinePantallaCompleta(url) {
                 referrerpolicy="no-referrer">
             </iframe>`;
             
-        player.style.display = "block";
+        player.style.display = "flex";
         
         const closeBtn = document.getElementById('close-player-btn');
         if (closeBtn) closeBtn.focus();
@@ -314,16 +313,15 @@ function cerrarReproductor() {
     }
 }
 
-// CONTROL REMOTO GLOBAL DE TECLADO / MANDO DE TELEVISIÓN
+// CONTROL DE MANDOS Y TECLADO (DPAD COMPATIBLE)
 document.addEventListener('keydown', (e) => {
     const buscador = document.getElementById('buscador-cine');
     const panelFiltros = document.getElementById('panel-filtros');
     const modalServidores = document.getElementById('modal-servidores');
     const reproductor = document.getElementById('reproductor-pantalla-completa');
 
-    // Botón físico "Atrás" del mando / móvil siempre cierra el reproductor o modales
     if (e.key === "Escape" || e.key === "BrowserBack" || e.code === "GoBack") {
-        if (reproductor && reproductor.style.display === "block") {
+        if (reproductor && reproductor.style.display === "flex") {
             cerrarReproductor();
             e.preventDefault();
             return;
@@ -341,8 +339,7 @@ document.addEventListener('keydown', (e) => {
         }
     }
 
-    // Si el reproductor está activo en pantalla, el botón Volver virtual es el único que responde
-    if (reproductor && reproductor.style.display === "block") {
+    if (reproductor && reproductor.style.display === "flex") {
         if (e.key === "Enter") {
             cerrarReproductor();
             e.preventDefault();
@@ -361,7 +358,7 @@ document.addEventListener('keydown', (e) => {
     } else if (panelFiltros && panelFiltros.style.display === "block") {
         elementosEnfocables = Array.from(panelFiltros.querySelectorAll('.btn-filtro, #btn-cerrar-panel'));
     } else {
-        elementosEnfocables = Array.from(document.querySelectorAll('#buscador-cine, #btn-abrir-menu, .movie-card:not([style*="display: none"]), #btn-cargar-mas'));
+        elementosEnfocables = Array.from(document.querySelectorAll('#buscador-cine, #btn-abrir-menu, .movie-card, #btn-cargar-mas'));
     }
 
     let index = elementosEnfocables.indexOf(document.activeElement);
