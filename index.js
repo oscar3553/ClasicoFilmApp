@@ -1,16 +1,17 @@
 let totalPeliculas = 0;
 const titulosRegistrados = new Set();
 let peliculasDatos = []; 
-let todasLasEtiquetas = new Set();
-let generoActivo = "TODOS";
 
-// Variables para el control del mando a distancia (Navegación por teclado/DPAD)
+let listaGeneros = new Set();
+let listaDecadas = new Set();
+let filtroActivo = { tipo: "TODOS", valor: "TODOS" };
+
 let elementoEnfocadoActual = null;
+let tarjetaUltimoClick = null;
+let temporizadorOcultarBoton = null;
 
-// Inicialización nativa de la App con Cordova: ESPERAR AL DISPOSITIVO
+// Inicialización nativa con Cordova
 document.addEventListener('deviceready', () => {
-    console.log("Cordova nativo activado correctamente.");
-    // Arrancamos la carga de películas solo cuando Android da luz verde
     cargarTodoElCatalogo();
 }, false);
 
@@ -29,9 +30,9 @@ async function cargarTodoElCatalogo() {
             estadoTitulo.innerText = `Catálogo (${totalPeliculas} películas)`;
         }
     }
-    crearBotonesDeGeneros();
     
-    // Al terminar de cargar, enfocamos automáticamente el buscador
+    construirPanelFiltros();
+    
     setTimeout(() => {
         const buscador = document.getElementById('buscador-cine');
         if (buscador) {
@@ -45,37 +46,19 @@ async function cargarBloque(startIndex) {
     const url = `https://www.classicofilm.com/feeds/posts/default?alt=json&start-index=${startIndex}&max-results=150`;
 
     return new Promise((resolve) => {
-        // Comprobamos si el plugin nativo de Android está listo
         if (window.cordova && window.cordova.plugin && window.cordova.plugin.http) {
-            
-            // Usamos la descarga nativa (esta no tiene bloqueos de seguridad de Android)
             window.cordova.plugin.http.get(url, {}, {}, function(response) {
                 try {
                     const data = JSON.parse(response.data);
-                    if (data.feed && data.feed.entry) {
-                        agregarPeliculasAlCatalogo(data.feed.entry);
-                    }
-                } catch (e) {
-                    console.error("Error al procesar JSON nativo: ", e);
-                }
-                resolve();
-            }, function(error) {
-                console.error("Error en peticion nativa: ", error.status, error.error);
-                resolve();
-            });
-
-        } else {
-            // Modo de respaldo (para pruebas en el navegador de la PC)
-            fetch(url)
-                .then(res => res.json())
-                .then(data => {
                     if (data.feed && data.feed.entry) agregarPeliculasAlCatalogo(data.feed.entry);
-                    resolve();
-                })
-                .catch(err => {
-                    console.error("Error en fetch de respaldo: ", err);
-                    resolve();
-                });
+                } catch (e) { console.error(e); }
+                resolve();
+            }, function(err) { resolve(); });
+        } else {
+            fetch(url).then(res => res.json()).then(data => {
+                if (data.feed && data.feed.entry) agregarPeliculasAlCatalogo(data.feed.entry);
+                resolve();
+            }).catch(() => resolve());
         }
     });
 }
@@ -100,20 +83,28 @@ function agregarPeliculasAlCatalogo(entradas) {
         }
         if (!urlVideo) return;
 
-        let generosPeli = [];
+        // Separar inteligentemente Géneros de Décadas
+        let categoriasPeli = [];
         if (entry.category) {
-            generosPeli = entry.category.map(cat => cat.term.trim());
-            generosPeli.forEach(g => todasLasEtiquetas.add(g));
+            categoriasPeli = entry.category.map(cat => cat.term.trim());
+            categoriasPeli.forEach(tag => {
+                if (tag.toLowerCase().includes("años") || tag.toLowerCase().includes("siglo") || /\b(19|20)\d{2}\b/.test(tag)) {
+                    listaDecadas.add(tag);
+                } else {
+                    listaGeneros.add(tag);
+                }
+            });
         }
 
         const tarjeta = document.createElement('a');
         tarjeta.href = "#";
         tarjeta.className = 'movie-card';
-        tarjeta.tabIndex = 0; // Permite que sea enfocable por el mando
+        tarjeta.tabIndex = 0;
         tarjeta.innerHTML = `<img src="${imagenUrl}" alt="${titulo}"><p>${titulo}</p>`;
         
         tarjeta.addEventListener('click', (e) => {
             e.preventDefault();
+            tarjetaUltimoClick = tarjeta; 
             lanzarCinePantallaCompleta(urlVideo);
         });
 
@@ -123,107 +114,198 @@ function agregarPeliculasAlCatalogo(entradas) {
         peliculasDatos.push({ 
             elemento: tarjeta, 
             titulo: titulo.toLowerCase(), 
-            generos: generosPeli 
+            categorias: categoriasPeli 
         });
     });
 }
 
-function crearBotonesDeGeneros() {
-    const contenedorG = document.getElementById('lista-generos');
-    if (!contenedorG) return;
-    contenedorG.innerHTML = "";
-    
-    const botonTodos = document.createElement('button');
-    botonTodos.id = "btn-genero-todos"; 
-    botonTodos.className = "btn-genero activo";
-    botonTodos.tabIndex = 0;
-    botonTodos.innerText = "Todas las películas";
-    botonTodos.onclick = function() { filtrarPorGenero("TODOS", this); };
-    contenedorG.appendChild(botonTodos);
+function construirPanelFiltros() {
+    const gridG = document.getElementById('grid-generos');
+    const gridD = document.getElementById('grid-decadas');
+    if (!gridG || !gridD) return;
 
-    Array.from(todasLasEtiquetas).sort().forEach(genero => {
+    gridG.innerHTML = "";
+    gridD.innerHTML = "";
+
+    // Botón por defecto para limpiar filtros
+    const btnTodos = document.createElement('button');
+    btnTodos.className = "btn-filtro activo";
+    btnTodos.innerText = "🔄 Mostrar Todo";
+    btnTodos.onclick = function() { activarFiltro("TODOS", "TODOS", this); };
+    gridG.appendChild(btnTodos);
+
+    // Pintar lista de géneros ordenados
+    Array.from(listaGeneros).sort().forEach(gen => {
         const btn = document.createElement('button');
-        btn.className = "btn-genero";
-        btn.tabIndex = 0;
-        btn.innerText = genero;
-        btn.onclick = function() { filtrarPorGenero(genero, this); };
-        contenedorG.appendChild(btn);
+        btn.className = "btn-filtro";
+        btn.innerText = gen;
+        btn.onclick = function() { activarFiltro("GENERO", gen, this); };
+        gridG.appendChild(btn);
+    });
+
+    // Pintar lista de décadas ordenadas
+    Array.from(listaDecadas).sort().forEach(dec => {
+        const btn = document.createElement('button');
+        btn.className = "btn-filtro";
+        btn.innerText = dec;
+        btn.onclick = function() { activarFiltro("DECADA", dec, this); };
+        gridD.appendChild(btn);
     });
 }
 
-function filtrarPorGenero(genero, botonSeleccionado) {
-    generoActivo = genero;
-    const buscador = document.getElementById('buscador-cine');
-    if (buscador) buscador.value = "";
+function activarFiltro(tipo, valor, boton) {
+    filtroActivo = { tipo: tipo, valor: valor };
     
-    document.querySelectorAll('.btn-genero').forEach(b => b.classList.remove('activo'));
-    botonSeleccionado.classList.add('activo');
+    document.querySelectorAll('.btn-filtro').forEach(b => b.classList.remove('activo'));
+    boton.classList.add('activo');
+    
+    const buscador = document.getElementById('buscador-cine');
+    if (buscador && tipo !== "TODOS") buscador.value = "";
+
     aplicarFiltrosYBusqueda();
+    cerrarPanelFiltros();
 }
 
 function aplicarFiltrosYBusqueda() {
     const buscador = document.getElementById('buscador-cine');
-    const textoBusqueda = buscador ? buscador.value.toLowerCase().trim() : "";
-    
-    if (textoBusqueda !== "" && generoActivo !== "TODOS") {
-        generoActivo = "TODOS";
-        document.querySelectorAll('.btn-genero').forEach(b => b.classList.remove('activo'));
-        const btnTodos = document.getElementById('btn-genero-todos');
-        if (btnTodos) btnTodos.classList.add('activo');
-    }
+    const texto = buscador ? buscador.value.toLowerCase().trim() : "";
 
     peliculasDatos.forEach(peli => {
-        const coincideBusqueda = peli.titulo.includes(textoBusqueda);
-        const coincideGenero = (generoActivo === "TODOS" || peli.generos.includes(generoActivo));
+        const coincideTexto = peli.titulo.includes(texto);
+        let coincideFiltro = false;
 
-        if (coincideBusqueda && coincideGenero) {
+        if (filtroActivo.tipo === "TODOS") {
+            coincideFiltro = true;
+        } else {
+            coincideFiltro = peli.categorias.includes(filtroActivo.valor);
+        }
+
+        if (coincideTexto && coincideFiltro) {
             peli.elemento.style.display = "block";
         } else {
             peli.elemento.style.display = "none";
         }
     });
+
+    // Actualizar contador visual
+    const visibles = peliculasDatos.filter(p => p.elemento.style.display !== "none").length;
+    const estadoTitulo = document.getElementById('estado-titulo');
+    if (estadoTitulo) {
+        if(filtroActivo.tipo === "TODOS" && texto === "") {
+            estadoTitulo.innerText = `Catálogo (${totalPeliculas} películas)`;
+        } else {
+            estadoTitulo.innerText = `Resultados (${visibles} películas)`;
+        }
+    }
 }
 
+// CONTROL DE INTERFAZ DEL PANEL DE FILTROS
+function abrirPanelFiltros() {
+    document.getElementById('panel-filtros').style.display = "block";
+    const primerBoton = document.querySelector('.btn-filtro');
+    if(primerBoton) primerBoton.focus();
+}
+
+function cerrarPanelFiltros() {
+    document.getElementById('panel-filtros').style.display = "none";
+    const btnMenu = document.getElementById('btn-abrir-menu');
+    if(btnMenu) btnMenu.focus();
+}
+
+// REPRODUCTOR FLUIDO Y OPTIMIZADO PARA ODYSEE
 function lanzarCinePantallaCompleta(url) {
     document.body.style.overflow = "hidden";
-    const container = document.getElementById('video-container-tv');
     const player = document.getElementById('reproductor-pantalla-completa');
-    if (container && player) {
-        container.innerHTML = `<iframe src="${url}" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+    const container = document.getElementById('video-container-tv');
+    
+    if (player && container) {
+        // Atributos de optimización y sandbox para Odysee / Aceleración de Hardware WebView
+        container.innerHTML = `<iframe src="${url}" allow="autoplay; fullscreen" allowfullscreen loading="eager" referrerpolicy="no-referrer"></iframe>`;
         player.style.display = "block";
+        
         const closeBtn = document.getElementById('close-player-btn');
-        if (closeBtn) closeBtn.focus(); // Enfocar botón cerrar para el mando
+        if (closeBtn) closeBtn.focus();
+
+        // Inicializar el sistema de ocultación automática del botón (Autohide)
+        reiniciarTemporizadorBotonCerrar();
+        
+        // Eventos para detectar interacción del usuario (móvil o mando) y mostrar la X
+        player.addEventListener('mousemove', mostrarBotonTemporalmente);
+        player.addEventListener('click', mostrarBotonTemporalmente);
+        player.addEventListener('touchstart', mostrarBotonTemporalmente);
     }
+}
+
+function mostrarBotonTemporalmente() {
+    const player = document.getElementById('reproductor-pantalla-completa');
+    if(player && player.classList.contains('user-inactive')) {
+        player.classList.remove('user-inactive');
+        player.classList.add('user-active');
+    }
+    reiniciarTemporizadorBotonCerrar();
+}
+
+function reiniciarTemporizadorBotonCerrar() {
+    clearTimeout(temporizadorOcultarBoton);
+    temporizadorOcultarBoton = setTimeout(() => {
+        const player = document.getElementById('reproductor-pantalla-completa');
+        if(player && document.activeElement !== document.getElementById('close-player-btn')) {
+            player.classList.remove('user-active');
+            player.classList.add('user-inactive');
+        }
+    }, 3500); // Se oculta solo a los 3.5 segundos de inactividad
 }
 
 function cerrarReproductor() {
     const player = document.getElementById('reproductor-pantalla-completa');
     const container = document.getElementById('video-container-tv');
+    clearTimeout(temporizadorOcultarBoton);
+
     if (player && container) {
         player.style.display = "none";
         container.innerHTML = ""; 
         document.body.style.overflowY = "auto";
-        if (elementoEnfocadoActual) elementoEnfocadoActual.focus();
+        
+        // ¡SOLUCIÓN CRÍTICA!: Al cerrar devolvemos el foco a la carátula, impidiendo que salte el teclado
+        if (tarjetaUltimoClick) {
+            tarjetaUltimoClick.focus();
+            elementoEnfocadoActual = tarjetaUltimoClick;
+        } else {
+            const btnMenu = document.getElementById('btn-abrir-menu');
+            if(btnMenu) btnMenu.focus();
+        }
     }
 }
 
-// ==========================================
-// SCRIPT DE CONTROL REMOTO (MANDO DE LA TV)
-// ==========================================
+// SISTEMA DE CONTROL DE TECLADO / MANDO DE TELEVISIÓN (DPAD)
 document.addEventListener('keydown', (e) => {
     const buscador = document.getElementById('buscador-cine');
-    
+    const panelFiltros = document.getElementById('panel-filtros');
+    const reproductor = document.getElementById('reproductor-pantalla-completa');
+
+    // Si el reproductor está activo, cualquier interacción despierta al botón cerrar
+    if (reproductor && reproductor.style.display === "block") {
+        mostrarBotonTemporalmente();
+        if (e.key === "Escape" || e.key === "BrowserBack" || e.code === "GoBack") {
+            cerrarReproductor();
+            e.preventDefault();
+        }
+        return; 
+    }
+
     if (document.activeElement === buscador && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
         return; 
     }
 
-    let elementosEnfocables = Array.from(document.querySelectorAll('#buscador-cine, .btn-genero, .movie-card:not([style*="display: none"])'));
-    if (document.getElementById('reproductor-pantalla-completa').style.display === "block") {
-        elementosEnfocables = [document.getElementById('close-player-btn')];
+    let elementosEnfocables = [];
+    
+    if (panelFiltros && panelFiltros.style.display === "block") {
+        elementosEnfocables = Array.from(panelFiltros.querySelectorAll('.btn-filtro, #btn-cerrar-panel'));
+    } else {
+        elementosEnfocables = Array.from(document.querySelectorAll('#buscador-cine, #btn-abrir-menu, .movie-card:not([style*="display: none"])'));
     }
 
     let index = elementosEnfocables.indexOf(document.activeElement);
-
     if (index === -1) {
         if (elementosEnfocables.length > 0) elementosEnfocables[0].focus();
         return;
@@ -243,8 +325,8 @@ document.addEventListener('keydown', (e) => {
         document.activeElement.click();
         e.preventDefault();
     } else if (e.key === "Escape" || e.key === "BrowserBack" || e.code === "GoBack") {
-        if (document.getElementById('reproductor-pantalla-completa').style.display === "block") {
-            cerrarReproductor();
+        if (panelFiltros && panelFiltros.style.display === "block") {
+            cerrarPanelFiltros();
             e.preventDefault();
         }
     }
@@ -279,7 +361,6 @@ function buscarElementoAbajoOArriba(lista, indexActual, direccion) {
             const distanciaTotal = distanciaX + (distanciaY * 2); 
 
             if (distanciaTotal < distanciaMinima) {
-                distAction = distanciaTotal;
                 distanciaMinima = distanciaTotal;
                 mejorOpcion = elem;
             }
@@ -295,4 +376,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const closeBtn = document.getElementById('close-player-btn');
     if(closeBtn) closeBtn.addEventListener('click', cerrarReproductor);
+
+    const btnAbrir = document.getElementById('btn-abrir-menu');
+    if(btnAbrir) btnAbrir.addEventListener('click', abrirPanelFiltros);
+
+    const btnCerrarP = document.getElementById('btn-cerrar-panel');
+    if(btnCerrarP) btnCerrarP.addEventListener('click', cerrarPanelFiltros);
 });
