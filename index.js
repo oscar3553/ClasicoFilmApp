@@ -10,7 +10,6 @@ let elementoEnfocadoActual = null;
 let tarjetaUltimoClick = null;
 let temporizadorOcultarBoton = null;
 
-// Inicialización nativa con Cordova
 document.addEventListener('deviceready', () => {
     cargarTodoElCatalogo();
 }, false);
@@ -75,15 +74,25 @@ function agregarPeliculasAlCatalogo(entradas) {
         let imagenUrl = "https://via.placeholder.com/200x280?text=Cine";
         if (entry.media$thumbnail) imagenUrl = entry.media$thumbnail.url.replace('/s72-c/', '/s400/');
 
+        // --- EXTRACCIÓN AVANZADA MULTI-SERVIDOR (DZEN Y ODYSEE) ---
         let urlVideo = "";
         const contenidoPost = entry.content ? entry.content.$t : "";
-        const coincidencia = contenidoPost.match(/<iframe[^>]+src="([^">]+)"/);
-        if (coincidencia && coincidencia[1]) {
-            urlVideo = coincidencia[1].startsWith('//') ? 'https:' + coincidencia[1] : coincidencia[1];
+        
+        // Buscamos todos los iframes que tengas puestos en la entrada
+        const matches = [...contenidoPost.matchAll(/<iframe[^>]+src="([^">]+)"/g)];
+        
+        if (matches.length > 0) {
+            let servidoresEncontrados = matches.map(m => m[1].startsWith('//') ? 'https:' + m[1] : m[1]);
+            
+            // Prioridad de servidores: Si está Odysee lo cogemos, si no, usamos Dzen.ru
+            const urlOdysee = servidoresEncontrados.find(url => url.includes("odysee.com"));
+            const urlDzen = servidoresEncontrados.find(url => url.includes("dzen.ru") || url.includes("vk.com"));
+            
+            urlVideo = urlOdysee || urlDzen || servidoresEncontrados[0];
         }
+
         if (!urlVideo) return;
 
-        // Separar inteligentemente Géneros de Décadas
         let categoriasPeli = [];
         if (entry.category) {
             categoriasPeli = entry.category.map(cat => cat.term.trim());
@@ -127,14 +136,12 @@ function construirPanelFiltros() {
     gridG.innerHTML = "";
     gridD.innerHTML = "";
 
-    // Botón por defecto para limpiar filtros
     const btnTodos = document.createElement('button');
     btnTodos.className = "btn-filtro activo";
     btnTodos.innerText = "🔄 Mostrar Todo";
     btnTodos.onclick = function() { activarFiltro("TODOS", "TODOS", this); };
     gridG.appendChild(btnTodos);
 
-    // Pintar lista de géneros ordenados
     Array.from(listaGeneros).sort().forEach(gen => {
         const btn = document.createElement('button');
         btn.className = "btn-filtro";
@@ -143,7 +150,6 @@ function construirPanelFiltros() {
         gridG.appendChild(btn);
     });
 
-    // Pintar lista de décadas ordenadas
     Array.from(listaDecadas).sort().forEach(dec => {
         const btn = document.createElement('button');
         btn.className = "btn-filtro";
@@ -155,7 +161,6 @@ function construirPanelFiltros() {
 
 function activarFiltro(tipo, valor, boton) {
     filtroActivo = { tipo: tipo, valor: valor };
-    
     document.querySelectorAll('.btn-filtro').forEach(b => b.classList.remove('activo'));
     boton.classList.add('activo');
     
@@ -187,7 +192,6 @@ function aplicarFiltrosYBusqueda() {
         }
     });
 
-    // Actualizar contador visual
     const visibles = peliculasDatos.filter(p => p.elemento.style.display !== "none").length;
     const estadoTitulo = document.getElementById('estado-titulo');
     if (estadoTitulo) {
@@ -199,7 +203,6 @@ function aplicarFiltrosYBusqueda() {
     }
 }
 
-// CONTROL DE INTERFAZ DEL PANEL DE FILTROS
 function abrirPanelFiltros() {
     document.getElementById('panel-filtros').style.display = "block";
     const primerBoton = document.querySelector('.btn-filtro');
@@ -212,24 +215,33 @@ function cerrarPanelFiltros() {
     if(btnMenu) btnMenu.focus();
 }
 
-// REPRODUCTOR FLUIDO Y OPTIMIZADO PARA ODYSEE
+// REPRODUCTOR MAESTRO CON SEGUIDOR Y PARAMETRIZACIÓN ODYSEE
 function lanzarCinePantallaCompleta(url) {
     document.body.style.overflow = "hidden";
     const player = document.getElementById('reproductor-pantalla-completa');
     const container = document.getElementById('video-container-tv');
     
     if (player && container) {
-        // Atributos de optimización y sandbox para Odysee / Aceleración de Hardware WebView
-        container.innerHTML = `<iframe src="${url}" allow="autoplay; fullscreen" allowfullscreen loading="eager" referrerpolicy="no-referrer"></iframe>`;
+        // BLINDAJE ULTRA: sandbox="allow-scripts allow-same-origin allow-forms" impide que el título te redirija fuera de la aplicación
+        // Inyectamos todas las banderas de Odysee para aceleración de hardware y wake-lock
+        container.innerHTML = `
+            <iframe 
+                src="${url}" 
+                sandbox="allow-scripts allow-same-origin allow-forms"
+                allow="autoplay; encrypted-media; fullscreen; picture-in-picture; screen-wake-lock;" 
+                frameborder="0" 
+                allowfullscreen 
+                loading="eager" 
+                referrerpolicy="no-referrer">
+            </iframe-tv>`;
+            
         player.style.display = "block";
         
         const closeBtn = document.getElementById('close-player-btn');
         if (closeBtn) closeBtn.focus();
 
-        // Inicializar el sistema de ocultación automática del botón (Autohide)
         reiniciarTemporizadorBotonCerrar();
         
-        // Eventos para detectar interacción del usuario (móvil o mando) y mostrar la X
         player.addEventListener('mousemove', mostrarBotonTemporalmente);
         player.addEventListener('click', mostrarBotonTemporalmente);
         player.addEventListener('touchstart', mostrarBotonTemporalmente);
@@ -253,7 +265,7 @@ function reiniciarTemporizadorBotonCerrar() {
             player.classList.remove('user-active');
             player.classList.add('user-inactive');
         }
-    }, 3500); // Se oculta solo a los 3.5 segundos de inactividad
+    }, 4000); // Se oculta a los 4 segundos quietos
 }
 
 function cerrarReproductor() {
@@ -266,7 +278,6 @@ function cerrarReproductor() {
         container.innerHTML = ""; 
         document.body.style.overflowY = "auto";
         
-        // ¡SOLUCIÓN CRÍTICA!: Al cerrar devolvemos el foco a la carátula, impidiendo que salte el teclado
         if (tarjetaUltimoClick) {
             tarjetaUltimoClick.focus();
             elementoEnfocadoActual = tarjetaUltimoClick;
@@ -277,13 +288,12 @@ function cerrarReproductor() {
     }
 }
 
-// SISTEMA DE CONTROL DE TECLADO / MANDO DE TELEVISIÓN (DPAD)
+// MANEJO DE MANDOS / CONTROLES DE LA TELEVISIÓN
 document.addEventListener('keydown', (e) => {
     const buscador = document.getElementById('buscador-cine');
     const panelFiltros = document.getElementById('panel-filtros');
     const reproductor = document.getElementById('reproductor-pantalla-completa');
 
-    // Si el reproductor está activo, cualquier interacción despierta al botón cerrar
     if (reproductor && reproductor.style.display === "block") {
         mostrarBotonTemporalmente();
         if (e.key === "Escape" || e.key === "BrowserBack" || e.code === "GoBack") {
