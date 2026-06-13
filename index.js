@@ -9,9 +9,9 @@ let filtroActivo = { tipo: "TODOS", valor: "TODOS" };
 let elementoEnfocadoActual = null;
 let tarjetaUltimoClick = null;
 
-// GESTIÓN DE PAGINACIÓN REAL
+// CONFIGURACIÓN DE PAGINACIÓN ESTRICTA
 let paginaActual = 1;
-const peliculasPorPagina = 24; // Número perfecto para cuadrículas simétricas (móvil y tablet)
+const peliculasPorPagina = 20; // Límite estricto por pantalla
 let peliculasFiltradasCache = [];
 
 document.addEventListener('deviceready', () => {
@@ -22,12 +22,15 @@ async function cargarTodoElCatalogoInicial() {
     const estadoTitulo = document.getElementById('estado-titulo');
     if(estadoTitulo) estadoTitulo.innerText = "Conectando con Blogger...";
     
-    // Descarga masiva inicial de los 3 bloques principales de tu servidor Blogger
+    // Forzamos la descarga limpia de contenidos
+    peliculasDatos = [];
+    titulosRegistrados.clear();
+    totalPeliculas = 0;
+
     await cargarBloque(1);
     await cargarBloque(151);
     await cargarBloque(301);
     
-    // Inicializamos las listas de filtrado y las cachés
     actualizarPeliculasFiltradasCache();
     renderizarPaginaActual();
     construirPanelFiltros();
@@ -42,7 +45,8 @@ async function cargarTodoElCatalogoInicial() {
 }
 
 async function cargarBloque(startIndex) {
-    const url = `https://www.classicofilm.com/feeds/posts/default?alt=json&start-index=${startIndex}&max-results=150`;
+    // Añadimos timestamp anti-caché a la petición de Blogger
+    const url = `https://www.classicofilm.com/feeds/posts/default?alt=json&start-index=${startIndex}&max-results=150&cb=${Date.now()}`;
 
     return new Promise((resolve) => {
         if (window.cordova && window.cordova.plugin && window.cordova.plugin.http) {
@@ -92,7 +96,7 @@ function procesarEntradasBlogger(entradas) {
             opcionesServidores.push({ tipo: "Principal", url: (matches[0][1].startsWith('//') ? 'https:' + matches[0][1] : matches[0][1]) });
         }
 
-        if (opcionesServidores.length === 0) return; // Se ignoran entradas vacías o sin reproductor
+        if (opcionesServidores.length === 0) return;
 
         let categoriasPeli = [];
         if (entry.category) {
@@ -117,7 +121,6 @@ function procesarEntradasBlogger(entradas) {
     });
 }
 
-// Actualiza qué películas cumplen las condiciones de búsqueda o filtros
 function actualizarPeliculasFiltradasCache() {
     const buscador = document.getElementById('buscador-cine');
     const textoBusqueda = buscador ? buscador.value.toLowerCase().trim() : "";
@@ -128,21 +131,23 @@ function actualizarPeliculasFiltradasCache() {
         return coincideTexto && coincideFiltro;
     });
 
-    paginaActual = 1; // Siempre regresamos a la página 1 cuando se realiza un filtro o búsqueda
+    paginaActual = 1; 
 }
 
-// Dibuja la página exacta limpiando la anterior
 function renderizarPaginaActual() {
     const contenedor = document.getElementById('catalogo-tv');
     if (!contenedor) return;
+    
+    // LIMPIEZA ABSOLUTA: Esto evita que se acumulen hacia abajo
     contenedor.innerHTML = "";
 
     const totalPelisFiltradas = peliculasFiltradasCache.length;
     const totalPaginas = Math.ceil(totalPelisFiltradas / peliculasPorPagina) || 1;
 
-    // Calcular índices del corte de paginación
     const indiceInicio = (paginaActual - 1) * peliculasPorPagina;
     const indiceFin = Math.min(indiceInicio + peliculasPorPagina, totalPelisFiltradas);
+    
+    // Cortamos el array para renderizar ÚNICAMENTE las 20 de esta página
     const peliculasPagina = peliculasFiltradasCache.slice(indiceInicio, indiceFin);
 
     peliculasPagina.forEach(peli => {
@@ -160,7 +165,6 @@ function renderizarPaginaActual() {
         contenedor.appendChild(tarjeta);
     });
 
-    // Actualizar los textos y contadores en la interfaz
     const estadoTitulo = document.getElementById('estado-titulo');
     if (estadoTitulo) {
         estadoTitulo.innerText = `Catálogo (${totalPelisFiltradas} películas)`;
@@ -169,34 +173,34 @@ function renderizarPaginaActual() {
     document.getElementById('txt-page-actual').innerText = paginaActual;
     document.getElementById('txt-page-total').innerText = totalPaginas;
 
-    // Bloquear o desbloquear botones de navegación según posición
     document.getElementById('btn-page-prev').disabled = (paginaActual === 1);
     document.getElementById('btn-page-next').disabled = (paginaActual === totalPaginas);
 }
 
 function cambiarPagina(direccion) {
-    if (direccion === "siguiente") {
+    const totalPelisFiltradas = peliculasFiltradasCache.length;
+    const totalPaginas = Math.ceil(totalPelisFiltradas / peliculasPorPagina) || 1;
+
+    if (direccion === "siguiente" && paginaActual < totalPaginas) {
         paginaActual++;
-    } else if (direccion === "anterior") {
+    } else if (direccion === "anterior" && paginaActual > 1) {
         paginaActual--;
     }
+    
     renderizarPaginaActual();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // Auto-enfoca la primera película de la nueva página para el mando de la TV
     setTimeout(() => {
         const primeraCard = document.querySelector('.movie-card');
         if(primeraCard) primeraCard.focus();
     }, 200);
 }
 
-// --- NUEVA LÓGICA DE FICHA TÉCNICA AVANZADA ---
 function abrirFichaTecnica(peli) {
     const modal = document.getElementById('modal-ficha-tecnica');
     document.getElementById('ficha-titulo').innerText = peli.titulo;
     document.getElementById('ficha-poster').src = peli.imagen;
 
-    // Colocar etiquetas / géneros de la película
     const contenedorTags = document.getElementById('ficha-tags');
     contenedorTags.innerHTML = "";
     peli.categorias.forEach(cat => {
@@ -206,13 +210,11 @@ function abrirFichaTecnica(peli) {
         contenedorTags.appendChild(badge);
     });
 
-    // Generar botones independientes para lanzar servidores
     const contenedorServidores = document.getElementById('ficha-contenedor-servidores');
     contenedorServidores.innerHTML = "";
 
     peli.servidores.forEach(srv => {
         const btn = document.createElement('button');
-        // Estilo de color según servidor
         let claseSrv = "generic";
         if(srv.tipo.toLowerCase().includes("odysee")) claseSrv = "odysee";
         if(srv.tipo.toLowerCase().includes("dzen")) claseSrv = "dzenru";
@@ -229,7 +231,6 @@ function abrirFichaTecnica(peli) {
 
     modal.style.display = "flex";
     
-    // Enfoca el primer botón de reproducción generado automáticamente
     setTimeout(() => {
         if(contenedorServidores.firstChild) contenedorServidores.firstChild.focus();
     }, 100);
@@ -344,7 +345,7 @@ function cerrarReproductor() {
     }
 }
 
-// CONTROL DE MOVIMIENTOS D-PAD / TECLADO REMOTO
+// CONTROL DE MOVIMIENTOS
 document.addEventListener('keydown', (e) => {
     const buscador = document.getElementById('buscador-cine');
     const panelFiltros = document.getElementById('panel-filtros');
@@ -467,7 +468,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCerrarF = document.getElementById('btn-cerrar-ficha');
     if(btnCerrarF) btnCerrarF.addEventListener('click', cerrarFichaTecnica);
 
-    // Botones del Paginador Real
     document.getElementById('btn-page-prev').addEventListener('click', () => cambiarPagina("anterior"));
     document.getElementById('btn-page-next').addEventListener('click', () => cambiarPagina("siguiente"));
 });
