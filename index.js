@@ -33,13 +33,11 @@ async function cargarTodoElCatalogoInicial() {
     renderizarPaginaActual();
     construirPanelFiltros();
     
-    setTimeout(() => {
-        const buscador = document.getElementById('buscador-cine');
-        if (buscador) {
-            buscador.focus();
-            elementoEnfocadoActual = buscador;
-        }
-    }, 500);
+    // Mantenemos el foco interno pero SIN abrir el teclado al arrancar la app
+    const buscador = document.getElementById('buscador-cine');
+    if (buscador) {
+        elementoEnfocadoActual = buscador;
+    }
 }
 
 async function cargarBloque(startIndex) {
@@ -167,7 +165,6 @@ function renderizarPaginaActual() {
     document.getElementById('txt-page-actual').innerText = paginaActual;
     document.getElementById('txt-page-total').innerText = totalPaginas;
 
-    // Control estricto de activación de botones de saltos
     document.getElementById('btn-page-first').disabled = (paginaActual === 1);
     document.getElementById('btn-page-prev').disabled = (paginaActual === 1);
     document.getElementById('btn-page-next').disabled = (paginaActual === totalPaginas);
@@ -197,12 +194,12 @@ function cambiarPagina(direccion) {
     }, 200);
 }
 
-// FUNCIÓN CORREGIDA: RESETEAR AL INICIO SIN DESPLEGAR EL TECLADO
+// CAMBIO AQUÍ: FUNCIÓN TOTALMENTE REPARADA PARA EVITAR EL TECLADO VIRTUAL
 function regresarAlInicioTotal() {
     const buscador = document.getElementById('buscador-cine');
     if (buscador) {
         buscador.value = "";
-        buscador.blur(); // Forzamos a quitar cualquier foco previo para asegurar que el teclado se cierre
+        buscador.blur(); // Quita el foco del buscador para cerrar el teclado en Android
     }
     
     filtroActivo = { tipo: "TODOS", valor: "TODOS" };
@@ -217,9 +214,8 @@ function regresarAlInicioTotal() {
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
-    // Eliminamos el .focus() automático que abría el teclado molesto
+    // Eliminado el .focus() automático para que la pantalla quede limpia y libre de teclado
     elementoEnfocadoActual = null; 
-}
 }
 
 function abrirFichaTecnica(peli) {
@@ -370,7 +366,6 @@ function cerrarReproductor() {
     }
 }
 
-// CONTROL DE TECLADO / REMOTO D-PAD
 document.addEventListener('keydown', (e) => {
     const buscador = document.getElementById('buscador-cine');
     const panelFiltros = document.getElementById('panel-filtros');
@@ -493,13 +488,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCerrarF = document.getElementById('btn-cerrar-ficha');
     if(btnCerrarF) btnCerrarF.addEventListener('click', cerrarFichaTecnica);
 
-    // Asignación de los botones de Paginación Avanzada
     document.getElementById('btn-page-first').addEventListener('click', () => cambiarPagina("primera"));
     document.getElementById('btn-page-prev').addEventListener('click', () => cambiarPagina("anterior"));
     document.getElementById('btn-page-next').addEventListener('click', () => cambiarPagina("siguiente"));
     document.getElementById('btn-page-last').addEventListener('click', () => cambiarPagina("ultima"));
 
-    // EVENTOS DE BOTÓN DE INICIO (LOGO Y BOTÓN FÍSICO)
     document.getElementById('btn-logo-inicio').addEventListener('click', regresarAlInicioTotal);
     document.getElementById('btn-reset-inicio').addEventListener('click', regresarAlInicioTotal);
 });
