@@ -8,7 +8,11 @@ let filtroActivo = { tipo: "TODOS", valor: "TODOS" };
 
 let elementoEnfocadoActual = null;
 let tarjetaUltimoClick = null;
-let maxPeliculasVisibles = 60; // Límite inicial cómodo y rápido para evitar amontonamientos
+
+// GESTIÓN DE PAGINACIÓN REAL
+let paginaActual = 1;
+const peliculasPorPagina = 24; // Número perfecto para cuadrículas simétricas (móvil y tablet)
+let peliculasFiltradasCache = [];
 
 document.addEventListener('deviceready', () => {
     cargarTodoElCatalogoInicial();
@@ -18,13 +22,14 @@ async function cargarTodoElCatalogoInicial() {
     const estadoTitulo = document.getElementById('estado-titulo');
     if(estadoTitulo) estadoTitulo.innerText = "Conectando con Blogger...";
     
-    // Cargamos los tres primeros bloques de la nube en la memoria interna
+    // Descarga masiva inicial de los 3 bloques principales de tu servidor Blogger
     await cargarBloque(1);
     await cargarBloque(151);
     await cargarBloque(301);
     
-    // Pintamos solo las primeras 60 según el límite inicial
-    renderizarCatalogoEnPantalla();
+    // Inicializamos las listas de filtrado y las cachés
+    actualizarPeliculasFiltradasCache();
+    renderizarPaginaActual();
     construirPanelFiltros();
     
     setTimeout(() => {
@@ -87,7 +92,7 @@ function procesarEntradasBlogger(entradas) {
             opcionesServidores.push({ tipo: "Principal", url: (matches[0][1].startsWith('//') ? 'https:' + matches[0][1] : matches[0][1]) });
         }
 
-        if (opcionesServidores.length === 0) return;
+        if (opcionesServidores.length === 0) return; // Se ignoran entradas vacías o sin reproductor
 
         let categoriasPeli = [];
         if (entry.category) {
@@ -106,106 +111,133 @@ function procesarEntradasBlogger(entradas) {
             tituloMinuscula: titulo.toLowerCase(), 
             imagen: imagenUrl,
             servidores: opcionesServidores,
-            categorias: categoriasPeli,
-            elementoDOM: null
+            categorias: categoriasPeli
         });
         totalPeliculas++;
     });
 }
 
-// Dibuja físicamente en pantalla respetando el límite estricto de la paginación
-function renderizarCatalogoEnPantalla() {
+// Actualiza qué películas cumplen las condiciones de búsqueda o filtros
+function actualizarPeliculasFiltradasCache() {
+    const buscador = document.getElementById('buscador-cine');
+    const textoBusqueda = buscador ? buscador.value.toLowerCase().trim() : "";
+
+    peliculasFiltradasCache = peliculasDatos.filter(peli => {
+        const coincideTexto = peli.tituloMinuscula.includes(textoBusqueda);
+        const coincideFiltro = (filtroActivo.tipo === "TODOS") || peli.categorias.includes(filtroActivo.valor);
+        return coincideTexto && coincideFiltro;
+    });
+
+    paginaActual = 1; // Siempre regresamos a la página 1 cuando se realiza un filtro o búsqueda
+}
+
+// Dibuja la página exacta limpiando la anterior
+function renderizarPaginaActual() {
     const contenedor = document.getElementById('catalogo-tv');
     if (!contenedor) return;
     contenedor.innerHTML = "";
 
-    const buscador = document.getElementById('buscador-cine');
-    const textoBusqueda = buscador ? buscador.value.toLowerCase().trim() : "";
+    const totalPelisFiltradas = peliculasFiltradasCache.length;
+    const totalPaginas = Math.ceil(totalPelisFiltradas / peliculasPorPagina) || 1;
 
-    let mostrados = 0;
+    // Calcular índices del corte de paginación
+    const indiceInicio = (paginaActual - 1) * peliculasPorPagina;
+    const indiceFin = Math.min(indiceInicio + peliculasPorPagina, totalPelisFiltradas);
+    const peliculasPagina = peliculasFiltradasCache.slice(indiceInicio, indiceFin);
 
-    peliculasDatos.forEach(peli => {
-        const coincideTexto = peli.tituloMinuscula.includes(textoBusqueda);
-        let coincideFiltro = (filtroActivo.tipo === "TODOS") || peli.categorias.includes(filtroActivo.valor);
-
-        if (coincideTexto && coincideFiltro) {
-            if (mostrados < maxPeliculasVisibles) {
-                if (!peli.elementoDOM) {
-                    const tarjeta = document.createElement('a');
-                    tarjeta.href = "#";
-                    tarjeta.className = 'movie-card';
-                    tarjeta.tabIndex = 0;
-                    tarjeta.innerHTML = `<img src="${peli.imagen}" alt="${peli.titulo}"><p>${peli.titulo}</p>`;
-                    
-                    tarjeta.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        tarjetaUltimoClick = tarjeta; 
-                        gestionarAperturaVideo(peli.titulo, peli.servidores);
-                    });
-                    peli.elementoDOM = tarjeta;
-                }
-                contenedor.appendChild(peli.elementoDOM);
-                mostrados++;
-            }
-        }
+    peliculasPagina.forEach(peli => {
+        const tarjeta = document.createElement('a');
+        tarjeta.href = "#";
+        tarjeta.className = 'movie-card';
+        tarjeta.tabIndex = 0;
+        tarjeta.innerHTML = `<img src="${peli.imagen}" alt="${peli.titulo}"><p>${peli.titulo}</p>`;
+        
+        tarjeta.addEventListener('click', (e) => {
+            e.preventDefault();
+            tarjetaUltimoClick = tarjeta; 
+            abrirFichaTecnica(peli);
+        });
+        contenedor.appendChild(tarjeta);
     });
 
+    // Actualizar los textos y contadores en la interfaz
     const estadoTitulo = document.getElementById('estado-titulo');
     if (estadoTitulo) {
-        if (textoBusqueda !== "" || filtroActivo.tipo !== "TODOS") {
-            estadoTitulo.innerText = `Resultados (${mostrados} de ${totalPeliculas})`;
-        } else {
-            estadoTitulo.innerText = `Catálogo (${mostrados} de ${totalPeliculas} películas)`;
-        }
+        estadoTitulo.innerText = `Catálogo (${totalPelisFiltradas} películas)`;
     }
-    
-    // Ocultar botón "Cargar más" si ya se muestran todas las de la búsqueda actual
-    const btnCargar = document.getElementById('btn-cargar-mas');
-    if(btnCargar) {
-        btnCargar.style.display = (mostrados >= maxPeliculasVisibles) ? "block" : "none";
-    }
+
+    document.getElementById('txt-page-actual').innerText = paginaActual;
+    document.getElementById('txt-page-total').innerText = totalPaginas;
+
+    // Bloquear o desbloquear botones de navegación según posición
+    document.getElementById('btn-page-prev').disabled = (paginaActual === 1);
+    document.getElementById('btn-page-next').disabled = (paginaActual === totalPaginas);
 }
 
-// Suma 60 nuevas películas reales a la rejilla cuando pulsas el botón inferior
-function cargarSiguientePagina() {
-    maxPeliculasVisibles += 60; 
-    renderizarCatalogoEnPantalla();
-    
-    // Devolvemos el foco al botón de cargar más para que no se pierda la selección del mando
+function cambiarPagina(direccion) {
+    if (direccion === "siguiente") {
+        paginaActual++;
+    } else if (direccion === "anterior") {
+        paginaActual--;
+    }
+    renderizarPaginaActual();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Auto-enfoca la primera película de la nueva página para el mando de la TV
     setTimeout(() => {
-        const btn = document.getElementById('btn-cargar-mas');
-        if(btn && btn.style.display !== "none") btn.focus();
+        const primeraCard = document.querySelector('.movie-card');
+        if(primeraCard) primeraCard.focus();
+    }, 200);
+}
+
+// --- NUEVA LÓGICA DE FICHA TÉCNICA AVANZADA ---
+function abrirFichaTecnica(peli) {
+    const modal = document.getElementById('modal-ficha-tecnica');
+    document.getElementById('ficha-titulo').innerText = peli.titulo;
+    document.getElementById('ficha-poster').src = peli.imagen;
+
+    // Colocar etiquetas / géneros de la película
+    const contenedorTags = document.getElementById('ficha-tags');
+    contenedorTags.innerHTML = "";
+    peli.categorias.forEach(cat => {
+        const badge = document.createElement('span');
+        badge.className = "tag-badge";
+        badge.innerText = cat;
+        contenedorTags.appendChild(badge);
+    });
+
+    // Generar botones independientes para lanzar servidores
+    const contenedorServidores = document.getElementById('ficha-contenedor-servidores');
+    contenedorServidores.innerHTML = "";
+
+    peli.servidores.forEach(srv => {
+        const btn = document.createElement('button');
+        // Estilo de color según servidor
+        let claseSrv = "generic";
+        if(srv.tipo.toLowerCase().includes("odysee")) claseSrv = "odysee";
+        if(srv.tipo.toLowerCase().includes("dzen")) claseSrv = "dzenru";
+
+        btn.className = `btn-action-play ${claseSrv}`;
+        btn.innerText = `▶️ Reproducir en ${srv.tipo}`;
+        btn.tabIndex = 0;
+        btn.onclick = function() {
+            modal.style.display = "none";
+            lanzarCinePantallaCompleta(srv.url);
+        };
+        contenedorServidores.appendChild(btn);
+    });
+
+    modal.style.display = "flex";
+    
+    // Enfoca el primer botón de reproducción generado automáticamente
+    setTimeout(() => {
+        if(contenedorServidores.firstChild) contenedorServidores.firstChild.focus();
     }, 100);
 }
 
-function gestionarAperturaVideo(titulo, servidores) {
-    if (servidores.length === 1) {
-        lanzarCinePantallaCompleta(servidores[0].url);
-    } else {
-        const modal = document.getElementById('modal-servidores');
-        const modalTitulo = document.getElementById('modal-titulo-peli');
-        const contenedorBotones = document.getElementById('modal-botones-opciones');
-        
-        if(!modal || !contenedorBotones) return;
-
-        modalTitulo.innerText = titulo;
-        contenedorBotones.innerHTML = "";
-
-        servidores.forEach(srv => {
-            const btn = document.createElement('button');
-            btn.className = `btn-servidor ${srv.tipo.toLowerCase().replace('.', '')}`;
-            btn.innerText = `Reproducir en ${srv.tipo}`;
-            btn.tabIndex = 0;
-            btn.onclick = function() {
-                modal.style.display = "none";
-                lanzarCinePantallaCompleta(srv.url);
-            };
-            contenedorBotones.appendChild(btn);
-        });
-
-        modal.style.display = "flex";
-        contenedorBotones.firstChild.focus();
-    }
+function cerrarFichaTecnica() {
+    document.getElementById('modal-ficha-tecnica').style.display = "none";
+    if (tarjetaUltimoClick) tarjetaUltimoClick.focus();
 }
 
 function construirPanelFiltros() {
@@ -241,21 +273,20 @@ function construirPanelFiltros() {
 
 function activarFiltro(tipo, valor, boton) {
     filtroActivo = { tipo: tipo, valor: valor };
-    maxPeliculasVisibles = 60; // Reseteamos contador al filtrar
-    
     document.querySelectorAll('.btn-filtro').forEach(b => b.classList.remove('activo'));
     boton.classList.add('activo');
     
     const buscador = document.getElementById('buscador-cine');
     if (buscador && tipo !== "TODOS") buscador.value = "";
 
-    renderizarCatalogoEnPantalla();
+    actualizarPeliculasFiltradasCache();
+    renderizarPaginaActual();
     cerrarPanelFiltros();
 }
 
 function aplicarFiltrosYBusqueda() {
-    maxPeliculasVisibles = 60; // Reseteamos al escribir en el buscador
-    renderizarCatalogoEnPantalla();
+    actualizarPeliculasFiltradasCache();
+    renderizarPaginaActual();
 }
 
 function abrirPanelFiltros() {
@@ -313,11 +344,11 @@ function cerrarReproductor() {
     }
 }
 
-// CONTROL DE MANDOS Y TECLADO (DPAD COMPATIBLE)
+// CONTROL DE MOVIMIENTOS D-PAD / TECLADO REMOTO
 document.addEventListener('keydown', (e) => {
     const buscador = document.getElementById('buscador-cine');
     const panelFiltros = document.getElementById('panel-filtros');
-    const modalServidores = document.getElementById('modal-servidores');
+    const modalFicha = document.getElementById('modal-ficha-tecnica');
     const reproductor = document.getElementById('reproductor-pantalla-completa');
 
     if (e.key === "Escape" || e.key === "BrowserBack" || e.code === "GoBack") {
@@ -326,9 +357,8 @@ document.addEventListener('keydown', (e) => {
             e.preventDefault();
             return;
         }
-        if (modalServidores && modalServidores.style.display === "flex") {
-            modalServidores.style.display = "none";
-            if (tarjetaUltimoClick) tarjetaUltimoClick.focus();
+        if (modalFicha && modalFicha.style.display === "flex") {
+            cerrarFichaTecnica();
             e.preventDefault();
             return;
         }
@@ -353,12 +383,12 @@ document.addEventListener('keydown', (e) => {
 
     let elementosEnfocables = [];
     
-    if (modalServidores && modalServidores.style.display === "flex") {
-        elementosEnfocables = Array.from(modalServidores.querySelectorAll('.btn-servidor'));
+    if (modalFicha && modalFicha.style.display === "flex") {
+        elementosEnfocables = Array.from(modalFicha.querySelectorAll('.btn-action-play'));
     } else if (panelFiltros && panelFiltros.style.display === "block") {
         elementosEnfocables = Array.from(panelFiltros.querySelectorAll('.btn-filtro, #btn-cerrar-panel'));
     } else {
-        elementosEnfocables = Array.from(document.querySelectorAll('#buscador-cine, #btn-abrir-menu, .movie-card, #btn-cargar-mas'));
+        elementosEnfocables = Array.from(document.querySelectorAll('#buscador-cine, #btn-abrir-menu, .movie-card, .btn-page-nav:not(:disabled)'));
     }
 
     let index = elementosEnfocables.indexOf(document.activeElement);
@@ -434,12 +464,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCerrarP = document.getElementById('btn-cerrar-panel');
     if(btnCerrarP) btnCerrarP.addEventListener('click', cerrarPanelFiltros);
 
-    const btnCargarMas = document.getElementById('btn-cargar-mas');
-    if(btnCargarMas) btnCargarMas.addEventListener('click', cargarSiguientePagina);
+    const btnCerrarF = document.getElementById('btn-cerrar-ficha');
+    if(btnCerrarF) btnCerrarF.addEventListener('click', cerrarFichaTecnica);
 
-    const btnCancelarSrv = document.getElementById('btn-cancelar-server');
-    if(btnCancelarSrv) btnCancelarSrv.addEventListener('click', () => {
-        document.getElementById('modal-servidores').style.display = "none";
-        if (tarjetaUltimoClick) tarjetaUltimoClick.focus();
-    });
+    // Botones del Paginador Real
+    document.getElementById('btn-page-prev').addEventListener('click', () => cambiarPagina("anterior"));
+    document.getElementById('btn-page-next').addEventListener('click', () => cambiarPagina("siguiente"));
 });
