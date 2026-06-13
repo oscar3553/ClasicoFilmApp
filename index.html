@@ -11,7 +11,6 @@
         /* Cabecera Premium */
         .header-tv { display: flex; align-items: center; justify-content: space-between; padding: 15px 30px; background: linear-gradient(to bottom, #141414, #0c0c0c); border-bottom: 1px solid #1a1a1a; }
         
-        /* LOGO INTERACTIVO COMO BOTÓN DE INICIO */
         .logo-box { cursor: pointer; outline: none; border: 2px solid transparent; border-radius: 8px; padding: 4px 8px; transition: all 0.2s; display: flex; align-items: center; }
         .logo-box:focus { border-color: #e50914; background-color: #1c1c1c; }
         .logo-box img { height: 45px; object-fit: contain; }
@@ -29,46 +28,53 @@
         .btn-explorar.btn-rojo { background-color: #e50914; border: none; }
         .btn-explorar:focus { background-color: white; color: black; box-shadow: 0 0 15px white; transform: scale(1.03); }
 
-        /* Panel Desplegable de Filtros (Categorías) */
-        .filter-panel { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(8, 8, 8, 0.97); z-index: 100; padding: 40px; overflow-y: auto; }
+        /* MEJORA 3: Panel de Filtros en Cuadrícula Organizada (Grid de 3 Columnas) */
+        .filter-panel { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(8, 8, 8, 0.98); z-index: 100; padding: 40px; overflow-y: auto; }
         .filter-panel-content { max-width: 1100px; margin: 0 auto; }
         .filter-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #222; padding-bottom: 15px; }
         .filter-header h2 { color: #e50914; font-size: 24px; }
         .btn-cerrar-panel { padding: 10px 20px; background-color: #222; color: white; border: 1px solid #444; border-radius: 20px; cursor: pointer; outline: none; font-weight: bold; }
         .btn-cerrar-panel:focus { background-color: white; color: black; }
         
-        .filter-section-title { font-size: 15px; color: #888; margin: 25px 0 12px 0; text-transform: uppercase; letter-spacing: 1.5px; font-weight: bold; }
-        .filter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
-        .btn-filtro { padding: 12px; background-color: #141414; color: #bbb; border: 1px solid #262626; border-radius: 6px; text-align: left; cursor: pointer; outline: none; font-size: 14px; transition: all 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .btn-filtro:focus { background-color: #e50914; color: white; border-color: white; transform: scale(1.04); }
-        .btn-filtro.activo { border-left: 4px solid #e50914; background-color: #1f1f1f; color: white; font-weight: bold; }
+        .filter-section-title { font-size: 14px; color: #e50914; margin: 30px 0 15px 0; text-transform: uppercase; letter-spacing: 2px; font-weight: bold; border-left: 3px solid #e50914; padding-left: 10px; }
+        .filter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px; }
+        .btn-filtro { padding: 14px; background-color: #141414; color: #ccc; border: 1px solid #262626; border-radius: 8px; text-align: left; cursor: pointer; outline: none; font-size: 14px; transition: all 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+        .btn-filtro:focus { background-color: #e50914; color: white; border-color: white; transform: scale(1.03); box-shadow: 0 4px 12px rgba(229,9,20,0.4); }
+        .btn-filtro.activo { border-left: 4px solid #e50914; background-color: #222; color: white; font-weight: bold; }
 
-        /* PANTALLA DE DETALLES / FICHA TÉCNICA */
-        .details-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(5, 5, 5, 0.96); z-index: 500; align-items: center; justify-content: center; padding: 20px; }
-        .details-content { background-color: #141414; border-radius: 12px; border: 1px solid #282828; max-width: 750px; width: 100%; display: flex; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.7); position: relative; animation: fadeIn 0.3s ease-out; }
+        /* MEJORA REAL: NUEVA FICHA TÉCNICA PREMIUM MEJORADA */
+        .details-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(4, 4, 4, 0.97); z-index: 500; align-items: center; justify-content: center; padding: 30px; }
+        .details-content { background-color: #161616; border-radius: 16px; border: 1px solid #2c2c2c; max-width: 900px; width: 100%; display: flex; overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.8); position: relative; animation: fadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1); max-height: 85vh; }
         
-        .details-poster { width: 35%; background-color: #222; display: flex; align-items: center; justify-content: center; }
+        .details-poster { width: 38%; background-color: #111; display: flex; align-items: center; justify-content: center; position: relative; border-right: 1px solid #222; }
         .details-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
         
-        .details-info { width: 65%; padding: 35px; display: flex; flex-direction: column; justify-content: space-between; }
-        .details-info h2 { font-size: 24px; color: #ffffff; margin-bottom: 12px; font-weight: bold; line-height: 1.3; }
+        .details-info { width: 62%; padding: 40px; display: flex; flex-direction: column; overflow-y: auto; }
+        .details-info h2 { font-size: 28px; color: #ffffff; margin-bottom: 16px; font-weight: bold; line-height: 1.2; letter-spacing: -0.5px; }
         
-        .details-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 25px; max-height: 80px; overflow-y: auto; }
-        .tag-badge { background-color: #262626; color: #b3b3b3; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+        /* Contenedor de Ficha de Datos Informativos */
+        .ficha-datos-container { background: #1c1c1c; border-radius: 8px; padding: 15px 20px; margin-bottom: 25px; border: 1px solid #262626; }
+        .ficha-linea { font-size: 14px; color: #dcdcdc; margin-bottom: 8px; display: flex; align-items: flex-start; }
+        .ficha-linea:last-child { margin-bottom: 0; }
+        .ficha-linea strong { color: #e50914; width: 90px; flex-shrink: 0; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; padding-top: 2px; }
         
-        .details-actions-box { display: flex; flex-direction: column; gap: 12px; margin-top: auto; }
+        .details-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .tag-badge { background-color: #2b2b2b; color: #ffffff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+        
+        /* Contenedor de Botonera Final de Servidores */
+        .details-actions-box { display: flex; flex-direction: column; gap: 12px; margin-top: auto; border-top: 1px solid #262626; padding-top: 20px; }
         .btn-action-play { width: 100%; padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; outline: none; display: flex; align-items: center; justify-content: center; gap: 10px; color: white; transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.5px; }
-        .btn-action-play.odysee { background-color: #ef5350; box-shadow: 0 4px 10px rgba(239, 83, 80, 0.3); }
-        .btn-action-play.dzenru { background-color: #2196f3; box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3); }
-        .btn-action-play.generic { background-color: #388e3c; box-shadow: 0 4px 10px rgba(56, 142, 60, 0.3); }
-        .btn-action-play:focus { border: 2px solid white; transform: scale(1.03); box-shadow: 0 0 15px white; }
+        .btn-action-play.odysee { background-color: #ef5350; box-shadow: 0 4px 10px rgba(239, 83, 80, 0.2); }
+        .btn-action-play.dzenru { background-color: #2196f3; box-shadow: 0 4px 10px rgba(33, 150, 243, 0.2); }
+        .btn-action-play.generic { background-color: #388e3c; box-shadow: 0 4px 10px rgba(56, 142, 60, 0.2); }
+        .btn-action-play:focus { border: 2px solid white; transform: scale(1.02); box-shadow: 0 0 15px white; color: white; }
         
-        .btn-action-close { background-color: #333333; }
+        .btn-action-close { background-color: #2b2b2b; color: #e0e0e0; }
         .btn-action-close:focus { background-color: white; color: black; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
 
-        /* Catálogo de Películas Estilizado con Efecto de Enfoque Premium */
+        /* Catálogo de Películas Estilizado */
         .catalog-container { padding: 10px 30px; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 24px; min-height: 50vh; }
         
         .movie-card { 
@@ -78,25 +84,41 @@
             border-radius: 12px !important; 
             overflow: hidden; 
             border: 2px solid transparent; 
-            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s, box-shadow 0.25s; 
+            transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.22s, box-shadow 0.22s; 
             box-shadow: 0 5px 12px rgba(0,0,0,0.5); 
             outline: none; 
+            position: relative;
         }
+        
+        /* MEJORA 1: Efecto Skeleton Animado para la precarga de imágenes */
+        .movie-card.loading-skeleton {
+            background: linear-gradient(90deg, #141414 25%, #222222 50%, #141414 75%);
+            background-size: 200% 100%;
+            animation: skeleton-blink 1.5s infinite;
+        }
+        @keyframes skeleton-blink {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
         .movie-card img { 
             width: 100%; 
             height: 230px; 
             object-fit: cover; 
-            background-color: #1f1f1f; 
             display: block; 
             border-radius: 10px 10px 0 0; 
+            transition: opacity 0.3s ease;
+            opacity: 0; /* Empieza oculto y aparece de forma suave al cargar */
         }
-        .movie-card p { padding: 10px 8px; font-size: 12px; color: #cccccc; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; transition: all 0.2s; }
+        .movie-card img.loaded { opacity: 1; }
         
-        /* EFECTO DE ESCALA TIPO SMART TV AL SELECCIONAR CARÁTULA */
-        .movie-card:focus, .movie-card:hover { border-color: #e50914; transform: scale(1.06); box-shadow: 0 0 22px rgba(229, 9, 20, 0.7); z-index: 10; }
+        .movie-card p { padding: 12px 8px; font-size: 12px; color: #cccccc; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; transition: all 0.2s; }
+        
+        /* MEJORA 2: Efecto de Escala de Enfoque Avanzada con Sombra */
+        .movie-card:focus, .movie-card:hover { border-color: #e50914; transform: scale(1.06); box-shadow: 0 0 24px rgba(229, 9, 20, 0.65); z-index: 10; }
         .movie-card:focus p, .movie-card:hover p { color: white; background-color: #e50914; }
 
-        /* BARRA DE PAGINACIÓN EXPANDIDA (INICIO / FIN INCLUIDOS) */
+        /* Barra de Paginación Extendida */
         .pagination-bar { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 40px 20px 60px 20px; background-color: #0c0c0c; }
         .btn-page-nav { padding: 12px 22px; background-color: #1c1c1c; color: white; border: 1px solid #333; border-radius: 25px; font-weight: bold; font-size: 14px; cursor: pointer; outline: none; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
         .btn-page-nav.btn-small { padding: 12px 16px; color: #888; }
@@ -105,7 +127,7 @@
         .page-indicator { font-size: 14px; font-weight: bold; color: #888; letter-spacing: 0.5px; margin: 0 10px; }
         .page-indicator span { color: #ffffff; }
 
-        /* REPRODUCTOR */
+        /* Reproductor Fullscreen */
         .player-fullscreen { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #000; z-index: 99999; flex-direction: column; }
         #video-container-tv { width: 100%; height: 88vh; background-color: black; }
         #video-container-tv iframe { width: 100%; height: 100%; border: none; }
@@ -114,9 +136,9 @@
         .close-video-btn { padding: 12px 40px; background-color: #e50914; border: 2px solid white; border-radius: 25px; color: white; font-size: 15px; font-weight: bold; cursor: pointer; outline: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-transform: uppercase; letter-spacing: 0.5px; }
         .close-video-btn:focus { background-color: white; color: #e50914; transform: scale(1.05); box-shadow: 0 0 15px white; }
 
-        @media (max-width: 600px) {
-            .details-content { flex-direction: column; max-height: 90vh; overflow-y: auto; }
-            .details-poster { width: 100%; height: 200px; }
+        @media (max-width: 768px) {
+            .details-content { flex-direction: column; max-height: 90vh; }
+            .details-poster { width: 100%; height: 240px; border-right: none; border-bottom: 1px solid #222; }
             .details-info { width: 100%; padding: 20px; }
             .header-tv { flex-direction: column; gap: 12px; padding: 15px; }
             .search-box { width: 100%; }
@@ -162,13 +184,22 @@
                 <img id="ficha-poster" src="" alt="Poster">
             </div>
             <div class="details-info">
-                <div>
-                    <h2 id="ficha-titulo">Título de la Película</h2>
-                    <div id="ficha-tags" class="details-tags"></div>
+                <h2 id="ficha-titulo">Título de la Película</h2>
+                
+                <div class="ficha-datos-container">
+                    <div class="ficha-linea">
+                        <strong>Lanzamiento:</strong>
+                        <span id="ficha-dato-ano">-</span>
+                    </div>
+                    <div class="ficha-linea">
+                        <strong>Géneros:</strong>
+                        <div id="ficha-tags" class="details-tags"></div>
+                    </div>
                 </div>
+
                 <div class="details-actions-box">
                     <div id="ficha-contenedor-servidores" style="display: flex; flex-direction: column; gap: 10px; width: 100%;"></div>
-                    <button class="btn-action-play btn-action-close" id="btn-cerrar-ficha">❌ Cerrar Ficha</button>
+                    <button class="btn-action-play btn-action-close" id="btn-cerrar-ficha">❌ Volver al menú</button>
                 </div>
             </div>
         </div>
@@ -191,6 +222,6 @@
         </div>
     </div>
 
-    <script src="index.js?v=3"></script>
+    <script src="index.js?v=4"></script>
 </body>
 </html>
