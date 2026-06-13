@@ -28,5 +28,7 @@
     </platform>
     
     <preference name="Fullscreen" value="true" />
-<icon src="www/logo_app.png" />
+<icon src="https://blogger.googleusercontent.com/img/a/AVvXsEgpLF6ROFXXw42soEaNVYLsA7ZPqgnzhGWN-id-bGZ0GfPbfeO08bxXlPv6KgdiOPMAOrsjOu8V-WXIUhlTYRYlU6KQthnIL0VcP1-D1l7CJImrszfdjCImWIMOMgoBYl5MwPot7B7SeRqyx3TzBUP2q1AXRgr_hS1zlGMPnh4VEMTvEz9Lq0f1AytDFWog=s158" />
+<allow-navigation href="https://blogger.googleusercontent.com/*" />
+<access origin="https://blogger.googleusercontent.com" />
 </widget>
