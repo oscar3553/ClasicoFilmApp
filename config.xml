@@ -28,5 +28,5 @@
     </platform>
     
     <preference name="Fullscreen" value="true" />
-
+<icon src="www/logo_app.png" />
 </widget>
