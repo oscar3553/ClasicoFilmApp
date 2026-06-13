@@ -35,7 +35,7 @@
         .btn-filtro:focus { background-color: #e50914; color: white; border-color: white; transform: scale(1.04); }
         .btn-filtro.activo { border-left: 4px solid #e50914; background-color: #1f1f1f; color: white; font-weight: bold; }
 
-        /* NUEVA PANTALLA DE DETALLES / FICHA TÉCNICA (ESTILO STREMIO) */
+        /* PANTALLA DE DETALLES / FICHA TÉCNICA */
         .details-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(5, 5, 5, 0.96); z-index: 500; align-items: center; justify-content: center; padding: 20px; }
         .details-content { background-color: #141414; border-radius: 12px; border: 1px solid #282828; max-width: 750px; width: 100%; display: flex; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.7); position: relative; animation: fadeIn 0.3s ease-out; }
         
@@ -60,24 +60,42 @@
 
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
-        /* Catálogo de Películas Estilizado */
-        .catalog-container { padding: 10px 30px; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 24px; min-height: 60vh; }
-        .movie-card { display: block; text-decoration: none; background-color: #141414; border-radius: 8px; overflow: hidden; border: 2px solid transparent; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 8px rgba(0,0,0,0.4); outline: none; }
-        .movie-card img { width: 100%; height: 230px; object-fit: cover; background-color: #1f1f1f; display: block; border-bottom: 1px solid #1f1f1f; }
+        /* Catálogo de Películas Estilizado con Bordes Redondeados Reales */
+        .catalog-container { padding: 10px 30px; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 24px; min-height: 50vh; }
+        
+        .movie-card { 
+            display: block; 
+            text-decoration: none; 
+            background-color: #141414; 
+            border-radius: 12px !important; /* Fuerza las esquinas redondeadas en la tarjeta */
+            overflow: hidden; 
+            border: 2px solid transparent; 
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); 
+            box-shadow: 0 5px 12px rgba(0,0,0,0.5); 
+            outline: none; 
+        }
+        .movie-card img { 
+            width: 100%; 
+            height: 230px; 
+            object-fit: cover; 
+            background-color: #1f1f1f; 
+            display: block; 
+            border-radius: 10px 10px 0 0; /* Redondea la imagen arriba */
+        }
         .movie-card p { padding: 10px 8px; font-size: 12px; color: #cccccc; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
         
         .movie-card:focus { border-color: #e50914; transform: scale(1.06); box-shadow: 0 0 20px rgba(229, 9, 20, 0.6); z-index: 10; }
         .movie-card:focus p { color: white; background-color: #e50914; }
 
-        /* NUEVA CONTROLLER DE PAGINACIÓN REAL (ANTERIOR / SIGUIENTE) */
+        /* CONTROLLER DE PAGINACIÓN REAL (ANTERIOR / SIGUIENTE) */
         .pagination-bar { display: flex; align-items: center; justify-content: center; gap: 25px; padding: 40px 20px 60px 20px; background-color: #0c0c0c; }
         .btn-page-nav { padding: 12px 28px; background-color: #1c1c1c; color: white; border: 1px solid #333; border-radius: 25px; font-weight: bold; font-size: 14px; cursor: pointer; outline: none; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
         .btn-page-nav:focus { background-color: white; color: black; border-color: white; transform: scale(1.05); }
-        .btn-page-nav:disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
+        .btn-page-nav:disabled { opacity: 0.2; cursor: not-allowed; pointer-events: none; }
         .page-indicator { font-size: 15px; font-weight: bold; color: #888; letter-spacing: 0.5px; }
         .page-indicator span { color: #ffffff; }
 
-        /* REPRODUCTOR FLUIDO CON CONTROL FIJO INFERIOR */
+        /* REPRODUCTOR */
         .player-fullscreen { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #000; z-index: 99999; flex-direction: column; }
         #video-container-tv { width: 100%; height: 88vh; background-color: black; }
         #video-container-tv iframe { width: 100%; height: 100%; border: none; }
@@ -86,7 +104,6 @@
         .close-video-btn { padding: 12px 40px; background-color: #e50914; border: 2px solid white; border-radius: 25px; color: white; font-size: 15px; font-weight: bold; cursor: pointer; outline: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-transform: uppercase; letter-spacing: 0.5px; }
         .close-video-btn:focus { background-color: white; color: #e50914; transform: scale(1.05); box-shadow: 0 0 15px white; }
 
-        /* Soporte Adaptativo Tablets */
         @media (max-width: 600px) {
             .details-content { flex-direction: column; max-height: 90vh; overflow-y: auto; }
             .details-poster { width: 100%; height: 200px; }
@@ -126,6 +143,7 @@
         </div>
     </div>
 
+    <!-- MODAL DE DETALLES -->
     <div id="modal-ficha-tecnica" class="details-modal">
         <div class="details-content">
             <div class="details-poster">
@@ -144,14 +162,17 @@
         </div>
     </div>
 
+    <!-- Rejilla del Catálogo -->
     <div id="catalogo-tv" class="catalog-container"></div>
 
+    <!-- BARRA DE PAGINACIÓN ACTUALIZADA -->
     <div class="pagination-bar">
         <button id="btn-page-prev" class="btn-page-nav">⬅️ Anterior</button>
         <div class="page-indicator">PÁGINA <span id="txt-page-actual">1</span> DE <span id="txt-page-total">1</span></div>
         <button id="btn-page-next" class="btn-page-nav">Siguiente ➡️</button>
     </div>
 
+    <!-- Contenedor del Reproductor -->
     <div id="reproductor-pantalla-completa" class="player-fullscreen">
         <div id="video-container-tv"></div>
         <div class="bottom-control-bar">
@@ -159,6 +180,7 @@
         </div>
     </div>
 
-    <script src="index.js"></script>
+    <!-- AGREGADO PARÁMETRO DE VERSIÓN v=2 PARA FORZAR AL MÓVIL A BORRAR LA CACHÉ VIEJA -->
+    <script src="index.js?v=2"></script>
 </body>
 </html>
