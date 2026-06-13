@@ -33,7 +33,6 @@ async function cargarTodoElCatalogoInicial() {
     renderizarPaginaActual();
     construirPanelFiltros();
     
-    // Mantenemos el foco interno pero SIN abrir el teclado al arrancar la app
     const buscador = document.getElementById('buscador-cine');
     if (buscador) {
         elementoEnfocadoActual = buscador;
@@ -94,9 +93,17 @@ function procesarEntradasBlogger(entradas) {
         if (opcionesServidores.length === 0) return;
 
         let categoriasPeli = [];
+        let anoDetectado = "Desconocido";
+
         if (entry.category) {
             categoriasPeli = entry.category.map(cat => cat.term.trim());
             categoriasPeli.forEach(tag => {
+                // Si la categoría contiene un año de 4 dígitos independiente lo extraemos de metadato
+                const matchAno = tag.match(/\b(19|20)\d{2}\b/);
+                if (matchAno) {
+                    anoDetectado = matchAno[0];
+                }
+                
                 if (tag.toLowerCase().includes("años") || tag.toLowerCase().includes("siglo") || /\b(19|20)\d{2}\b/.test(tag)) {
                     listaDecadas.add(tag);
                 } else {
@@ -110,7 +117,8 @@ function procesarEntradasBlogger(entradas) {
             tituloMinuscula: titulo.toLowerCase(), 
             imagen: imagenUrl,
             servidores: opcionesServidores,
-            categorias: categoriasPeli
+            categorias: categoriasPeli,
+            ano: anoDetectado
         });
         totalPeliculas++;
     });
@@ -145,9 +153,20 @@ function renderizarPaginaActual() {
     peliculasPagina.forEach(peli => {
         const tarjeta = document.createElement('a');
         tarjeta.href = "#";
-        tarjeta.className = 'movie-card';
+        tarjeta.className = 'movie-card loading-skeleton'; // Iniciamos con el efecto esqueleto animado
         tarjeta.tabIndex = 0;
-        tarjeta.innerHTML = `<img src="${peli.imagen}" alt="${peli.titulo}"><p>${peli.titulo}</p>`;
+        
+        // Creamos la imagen dinámicamente para controlar su evento de carga limpia
+        const img = document.createElement('img');
+        img.src = peli.imagen;
+        img.alt = peli.titulo;
+        img.onload = function() {
+            tarjeta.classList.remove('loading-skeleton'); // Quitamos skeleton al cargar
+            img.classList.add('loaded'); // Desvanecimiento suave CSS
+        };
+
+        tarjeta.appendChild(img);
+        tarjeta.innerHTML += `<p>${peli.titulo}</p>`;
         
         tarjeta.addEventListener('click', (e) => {
             e.preventDefault();
@@ -194,12 +213,11 @@ function cambiarPagina(direccion) {
     }, 200);
 }
 
-// CAMBIO AQUÍ: FUNCIÓN TOTALMENTE REPARADA PARA EVITAR EL TECLADO VIRTUAL
 function regresarAlInicioTotal() {
     const buscador = document.getElementById('buscador-cine');
     if (buscador) {
         buscador.value = "";
-        buscador.blur(); // Quita el foco del buscador para cerrar el teclado en Android
+        buscador.blur(); 
     }
     
     filtroActivo = { tipo: "TODOS", valor: "TODOS" };
@@ -213,24 +231,32 @@ function regresarAlInicioTotal() {
     renderizarPaginaActual();
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-    // Eliminado el .focus() automático para que la pantalla quede limpia y libre de teclado
     elementoEnfocadoActual = null; 
 }
 
+// CONFIGURACIÓN DE LA NUEVA FICHA TÉCNICA DINÁMICA DE ALTO NIVEL
 function abrirFichaTecnica(peli) {
     const modal = document.getElementById('modal-ficha-tecnica');
     document.getElementById('ficha-titulo').innerText = peli.titulo;
     document.getElementById('ficha-poster').src = peli.imagen;
+    document.getElementById('ficha-dato-ano').innerText = peli.ano !== "Desconocido" ? peli.ano : "Clásico Registrado";
 
     const contenedorTags = document.getElementById('ficha-tags');
     contenedorTags.innerHTML = "";
-    peli.categorias.forEach(cat => {
-        const badge = document.createElement('span');
-        badge.className = "tag-badge";
-        badge.innerText = cat;
-        contenedorTags.appendChild(badge);
-    });
+    
+    // Filtramos para mostrar en la ficha solo etiquetas limpias de géneros
+    const generosFiltrados = peli.categorias.filter(c => !c.toLowerCase().includes("años") && !c.toLowerCase().includes("siglo") && !/\b(19|20)\d{2}\b/.test(c));
+    
+    if(generosFiltrados.length > 0) {
+        generosFiltrados.forEach(cat => {
+            const badge = document.createElement('span');
+            badge.className = "tag-badge";
+            badge.innerText = cat;
+            contenedorTags.appendChild(badge);
+        });
+    } else {
+        contenedorTags.innerHTML = "<span class='tag-badge'>Cine Clásico</span>";
+    }
 
     const contenedorServidores = document.getElementById('ficha-contenedor-servidores');
     contenedorServidores.innerHTML = "";
@@ -405,7 +431,7 @@ document.addEventListener('keydown', (e) => {
     let elementosEnfocables = [];
     
     if (modalFicha && modalFicha.style.display === "flex") {
-        elementosEnfocables = Array.from(modalFicha.querySelectorAll('.btn-action-play'));
+        elementosEnfocables = Array.from(modalFicha.querySelectorAll('.btn-action-play, #btn-cerrar-ficha'));
     } else if (panelFiltros && panelFiltros.style.display === "block") {
         elementosEnfocables = Array.from(panelFiltros.querySelectorAll('.btn-filtro, #btn-cerrar-panel'));
     } else {
@@ -423,7 +449,7 @@ document.addEventListener('keydown', (e) => {
     if (e.key === "ArrowRight") {
         proximoElemento = elementosEnfocables[index + 1] || elementosEnfocables[0];
     } else if (e.key === "ArrowLeft") {
-        proximoElemento = elementosEnfocables[index - 1] || elementosEnfocables[elementosEnfocables.length - 1];
+        proximoElemento = elementsEnfocables[index - 1] || elementosEnfocables[elementosEnfocables.length - 1];
     } else if (e.key === "ArrowDown") {
         proximoElemento = buscarElementoAbajoOArriba(elementosEnfocables, index, "abajo");
     } else if (e.key === "ArrowUp") {
