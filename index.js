@@ -197,10 +197,13 @@ function cambiarPagina(direccion) {
     }, 200);
 }
 
-// NUEVA FUNCIÓN COHESIVA: RESETEAR AL INICIO TOTAL
+// FUNCIÓN CORREGIDA: RESETEAR AL INICIO SIN DESPLEGAR EL TECLADO
 function regresarAlInicioTotal() {
     const buscador = document.getElementById('buscador-cine');
-    if (buscador) buscador.value = "";
+    if (buscador) {
+        buscador.value = "";
+        buscador.blur(); // Forzamos a quitar cualquier foco previo para asegurar que el teclado se cierre
+    }
     
     filtroActivo = { tipo: "TODOS", valor: "TODOS" };
     
@@ -214,10 +217,9 @@ function regresarAlInicioTotal() {
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
-    if (buscador) {
-        buscador.focus();
-        elementoEnfocadoActual = buscador;
-    }
+    // Eliminamos el .focus() automático que abría el teclado molesto
+    elementoEnfocadoActual = null; 
+}
 }
 
 function abrirFichaTecnica(peli) {
