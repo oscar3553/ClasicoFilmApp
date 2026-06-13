@@ -9,9 +9,8 @@ let filtroActivo = { tipo: "TODOS", valor: "TODOS" };
 let elementoEnfocadoActual = null;
 let tarjetaUltimoClick = null;
 
-// CONFIGURACIÓN DE PAGINACIÓN ESTRICTA
 let paginaActual = 1;
-const peliculasPorPagina = 20; // Límite estricto por pantalla
+const peliculasPorPagina = 20; 
 let peliculasFiltradasCache = [];
 
 document.addEventListener('deviceready', () => {
@@ -22,7 +21,6 @@ async function cargarTodoElCatalogoInicial() {
     const estadoTitulo = document.getElementById('estado-titulo');
     if(estadoTitulo) estadoTitulo.innerText = "Conectando con Blogger...";
     
-    // Forzamos la descarga limpia de contenidos
     peliculasDatos = [];
     titulosRegistrados.clear();
     totalPeliculas = 0;
@@ -45,7 +43,6 @@ async function cargarTodoElCatalogoInicial() {
 }
 
 async function cargarBloque(startIndex) {
-    // Añadimos timestamp anti-caché a la petición de Blogger
     const url = `https://www.classicofilm.com/feeds/posts/default?alt=json&start-index=${startIndex}&max-results=150&cb=${Date.now()}`;
 
     return new Promise((resolve) => {
@@ -138,7 +135,6 @@ function renderizarPaginaActual() {
     const contenedor = document.getElementById('catalogo-tv');
     if (!contenedor) return;
     
-    // LIMPIEZA ABSOLUTA: Esto evita que se acumulen hacia abajo
     contenedor.innerHTML = "";
 
     const totalPelisFiltradas = peliculasFiltradasCache.length;
@@ -146,8 +142,6 @@ function renderizarPaginaActual() {
 
     const indiceInicio = (paginaActual - 1) * peliculasPorPagina;
     const indiceFin = Math.min(indiceInicio + peliculasPorPagina, totalPelisFiltradas);
-    
-    // Cortamos el array para renderizar ÚNICAMENTE las 20 de esta página
     const peliculasPagina = peliculasFiltradasCache.slice(indiceInicio, indiceFin);
 
     peliculasPagina.forEach(peli => {
@@ -173,8 +167,11 @@ function renderizarPaginaActual() {
     document.getElementById('txt-page-actual').innerText = paginaActual;
     document.getElementById('txt-page-total').innerText = totalPaginas;
 
+    // Control estricto de activación de botones de saltos
+    document.getElementById('btn-page-first').disabled = (paginaActual === 1);
     document.getElementById('btn-page-prev').disabled = (paginaActual === 1);
     document.getElementById('btn-page-next').disabled = (paginaActual === totalPaginas);
+    document.getElementById('btn-page-last').disabled = (paginaActual === totalPaginas);
 }
 
 function cambiarPagina(direccion) {
@@ -185,6 +182,10 @@ function cambiarPagina(direccion) {
         paginaActual++;
     } else if (direccion === "anterior" && paginaActual > 1) {
         paginaActual--;
+    } else if (direccion === "primera") {
+        paginaActual = 1;
+    } else if (direccion === "ultima") {
+        paginaActual = totalPaginas;
     }
     
     renderizarPaginaActual();
@@ -194,6 +195,29 @@ function cambiarPagina(direccion) {
         const primeraCard = document.querySelector('.movie-card');
         if(primeraCard) primeraCard.focus();
     }, 200);
+}
+
+// NUEVA FUNCIÓN COHESIVA: RESETEAR AL INICIO TOTAL
+function regresarAlInicioTotal() {
+    const buscador = document.getElementById('buscador-cine');
+    if (buscador) buscador.value = "";
+    
+    filtroActivo = { tipo: "TODOS", valor: "TODOS" };
+    
+    document.querySelectorAll('.btn-filtro').forEach(b => {
+        if(b.innerText.includes("Mostrar Todo")) b.classList.add('activo');
+        else b.classList.remove('activo');
+    });
+
+    actualizarPeliculasFiltradasCache();
+    renderizarPaginaActual();
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    if (buscador) {
+        buscador.focus();
+        elementoEnfocadoActual = buscador;
+    }
 }
 
 function abrirFichaTecnica(peli) {
@@ -320,7 +344,6 @@ function lanzarCinePantallaCompleta(url) {
             </iframe>`;
             
         player.style.display = "flex";
-        
         const closeBtn = document.getElementById('close-player-btn');
         if (closeBtn) closeBtn.focus();
     }
@@ -345,7 +368,7 @@ function cerrarReproductor() {
     }
 }
 
-// CONTROL DE MOVIMIENTOS
+// CONTROL DE TECLADO / REMOTO D-PAD
 document.addEventListener('keydown', (e) => {
     const buscador = document.getElementById('buscador-cine');
     const panelFiltros = document.getElementById('panel-filtros');
@@ -389,7 +412,7 @@ document.addEventListener('keydown', (e) => {
     } else if (panelFiltros && panelFiltros.style.display === "block") {
         elementosEnfocables = Array.from(panelFiltros.querySelectorAll('.btn-filtro, #btn-cerrar-panel'));
     } else {
-        elementosEnfocables = Array.from(document.querySelectorAll('#buscador-cine, #btn-abrir-menu, .movie-card, .btn-page-nav:not(:disabled)'));
+        elementosEnfocables = Array.from(document.querySelectorAll('#btn-logo-inicio, #buscador-cine, #btn-reset-inicio, #btn-abrir-menu, .movie-card, .btn-page-nav:not(:disabled)'));
     }
 
     let index = elementosEnfocables.indexOf(document.activeElement);
@@ -468,6 +491,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCerrarF = document.getElementById('btn-cerrar-ficha');
     if(btnCerrarF) btnCerrarF.addEventListener('click', cerrarFichaTecnica);
 
+    // Asignación de los botones de Paginación Avanzada
+    document.getElementById('btn-page-first').addEventListener('click', () => cambiarPagina("primera"));
     document.getElementById('btn-page-prev').addEventListener('click', () => cambiarPagina("anterior"));
     document.getElementById('btn-page-next').addEventListener('click', () => cambiarPagina("siguiente"));
+    document.getElementById('btn-page-last').addEventListener('click', () => cambiarPagina("ultima"));
+
+    // EVENTOS DE BOTÓN DE INICIO (LOGO Y BOTÓN FÍSICO)
+    document.getElementById('btn-logo-inicio').addEventListener('click', regresarAlInicioTotal);
+    document.getElementById('btn-reset-inicio').addEventListener('click', regresarAlInicioTotal);
 });
