@@ -98,7 +98,6 @@ function procesarEntradasBlogger(entradas) {
         if (entry.category) {
             categoriasPeli = entry.category.map(cat => cat.term.trim());
             categoriasPeli.forEach(tag => {
-                // Si la categoría contiene un año de 4 dígitos independiente lo extraemos de metadato
                 const matchAno = tag.match(/\b(19|20)\d{2}\b/);
                 if (matchAno) {
                     anoDetectado = matchAno[0];
@@ -153,20 +152,14 @@ function renderizarPaginaActual() {
     peliculasPagina.forEach(peli => {
         const tarjeta = document.createElement('a');
         tarjeta.href = "#";
-        tarjeta.className = 'movie-card loading-skeleton'; // Iniciamos con el efecto esqueleto animado
+        tarjeta.className = 'movie-card'; // Quitamos la clase esqueleto de aquí para evitar el cuadro negro prolongado
         tarjeta.tabIndex = 0;
         
-        // Creamos la imagen dinámicamente para controlar su evento de carga limpia
-        const img = document.createElement('img');
-        img.src = peli.imagen;
-        img.alt = peli.titulo;
-        img.onload = function() {
-            tarjeta.classList.remove('loading-skeleton'); // Quitamos skeleton al cargar
-            img.classList.add('loaded'); // Desvanecimiento suave CSS
-        };
-
-        tarjeta.appendChild(img);
-        tarjeta.innerHTML += `<p>${peli.titulo}</p>`;
+        // La imagen se inserta directamente de forma nativa sin opacidad 0
+        tarjeta.innerHTML = `
+            <img src="${peli.imagen}" alt="${peli.titulo}">
+            <p>${peli.titulo}</p>
+        `;
         
         tarjeta.addEventListener('click', (e) => {
             e.preventDefault();
@@ -234,7 +227,6 @@ function regresarAlInicioTotal() {
     elementoEnfocadoActual = null; 
 }
 
-// CONFIGURACIÓN DE LA NUEVA FICHA TÉCNICA DINÁMICA DE ALTO NIVEL
 function abrirFichaTecnica(peli) {
     const modal = document.getElementById('modal-ficha-tecnica');
     document.getElementById('ficha-titulo').innerText = peli.titulo;
@@ -244,11 +236,10 @@ function abrirFichaTecnica(peli) {
     const contenedorTags = document.getElementById('ficha-tags');
     contenedorTags.innerHTML = "";
     
-    // Filtramos para mostrar en la ficha solo etiquetas limpias de géneros
     const generosFiltrados = peli.categorias.filter(c => !c.toLowerCase().includes("años") && !c.toLowerCase().includes("siglo") && !/\b(19|20)\d{2}\b/.test(c));
     
     if(generosFiltrados.length > 0) {
-        generosFiltrados.forEach(cat => {
+        generosFiltrados.slice(0, 3).forEach(cat => { // Limitamos a 3 géneros máximo para optimizar espacio vertical
             const badge = document.createElement('span');
             badge.className = "tag-badge";
             badge.innerText = cat;
@@ -449,7 +440,7 @@ document.addEventListener('keydown', (e) => {
     if (e.key === "ArrowRight") {
         proximoElemento = elementosEnfocables[index + 1] || elementosEnfocables[0];
     } else if (e.key === "ArrowLeft") {
-        proximoElemento = elementsEnfocables[index - 1] || elementosEnfocables[elementosEnfocables.length - 1];
+        proximoElemento = elementosEnfocables[index - 1] || elementosEnfocables[elementosEnfocables.length - 1];
     } else if (e.key === "ArrowDown") {
         proximoElemento = buscarElementoAbajoOArriba(elementosEnfocables, index, "abajo");
     } else if (e.key === "ArrowUp") {
