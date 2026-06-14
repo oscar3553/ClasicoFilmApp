@@ -43,6 +43,8 @@ jobs:
         cp ../index.html www/
         cp ../index.js www/
         cp ../config.xml .
+        # Forzamos la descarga del logotipo directamente en la carpeta de compilacion
+        curl -L -o logo_app.png "https://blogger.googleusercontent.com/img/a/AVvXsEgpLF6ROFXXw42soEaNVYLsA7ZPqgnzhGWN-id-bGZ0GfPbfeO08bxXlPv6KgdiOPMAOrsjOu8V-WXIUhlTYRYlU6KQthnIL0VcP1-D1l7CJImrszfdjCImWIMOMgoBYl5MwPot7B7SeRqyx3TzBUP2q1AXRgr_hS1zlGMPnh4VEMTvEz9Lq0f1AytDFWog=s158"
         
     - name: 7. Compilar la APK de Android (Modo Debug)
       run: |
