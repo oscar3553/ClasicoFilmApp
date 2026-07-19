@@ -254,9 +254,9 @@ function abrirFichaTecnica(peli) {
 
     peli.servidores.forEach(srv => {
         const btn = document.createElement('button');
-        let claseSrv = "generic";
-        if(srv.tipo.toLowerCase().includes("odysee")) claseSrv = "odysee";
-        if(srv.tipo.toLowerCase().includes("dzen")) claseSrv = "dzenru";
+       let claseSrv = "generic";
+if(srv.tipo.toLowerCase().includes("mail.ru")) claseSrv = "mailru"; // Cambiado para Mail.ru
+if(srv.tipo.toLowerCase().includes("dzen")) claseSrv = "dzenru";
 
         btn.className = `btn-action-play ${claseSrv}`;
         btn.innerText = `▶️ Reproducir en ${srv.tipo}`;
