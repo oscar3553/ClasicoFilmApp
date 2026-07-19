@@ -78,11 +78,11 @@ function procesarEntradasBlogger(entradas) {
         if (matches.length > 0) {
             matches.forEach(m => {
                 let urlClean = m[1].startsWith('//') ? 'https:' + m[1] : m[1];
-                if (urlClean.includes("odysee.com")) {
-                    opcionesServidores.push({ tipo: "Odysee", url: urlClean });
-                } else if (urlClean.includes("dzen.ru") || urlClean.includes("vk.com")) {
-                    opcionesServidores.push({ tipo: "Dzen.ru", url: urlClean });
-                }
+                if (urlClean.includes("mail.ru")) {
+    opcionesServidores.push({ tipo: "Mail.ru", url: urlClean });
+} else if (urlClean.includes("dzen.ru") || urlClean.includes("vk.com")) {
+    opcionesServidores.push({ tipo: "Dzen.ru", url: urlClean });
+}
             });
         }
 
